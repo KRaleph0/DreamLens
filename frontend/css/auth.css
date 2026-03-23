@@ -1,0 +1,41 @@
+/* frontend/css/auth.css */
+
+/* 화면 전체를 사용하여 정중앙 배치 */
+.auth-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: #0f172a; /* 메인 배경색과 통일 */
+}
+
+/* 카드 컨테이너 너비 제한 */
+.auth-container {
+    width: 100%;
+    max-width: 450px;
+    padding: 1rem;
+}
+
+/* 인증 탭 (Pills) 커스텀 스타일 */
+.auth-tabs {
+    background-color: #0f172a;
+    border-radius: 50px;
+    padding: 0.3rem;
+}
+
+.auth-tabs .nav-link {
+    color: #94a3b8;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+/* 활성화된 탭 스타일 */
+.auth-tabs .nav-link.active {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    color: white;
+    font-weight: bold;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}

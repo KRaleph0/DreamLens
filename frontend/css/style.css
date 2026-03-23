@@ -1,0 +1,60 @@
+/* frontend/css/style.css */
+
+/* Global Settings */
+body { 
+    font-family: 'Pretendard', sans-serif; 
+    background-color: #0f172a; 
+}
+
+/* Custom Colors & Buttons */
+.text-primary-custom { 
+    color: #8b5cf6 !important; 
+}
+
+.btn-primary-custom { 
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6); 
+    border: none; 
+    color: white; 
+}
+
+.btn-primary-custom:hover { 
+    opacity: 0.9; 
+    color: white; 
+}
+
+/* Card & List Components (UI-01) */
+.card { 
+    background-color: #1e293b; 
+    border-color: #334155; 
+    transition: transform 0.2s; 
+    cursor: pointer; 
+}
+
+.card:hover { 
+    transform: translateY(-5px); 
+    border-color: #8b5cf6; 
+}
+
+.list-group-item { 
+    background-color: #1e293b; 
+    border-color: #334155; 
+}
+
+/* Editor Components (UI-02) */
+.editor-container { 
+    background-color: #1e293b; 
+    border: 1px solid #334155; 
+    border-radius: 12px; 
+    padding: 2rem; 
+}
+
+.form-control:focus { 
+    border-color: #8b5cf6; 
+    box-shadow: 0 0 0 0.25rem rgba(139, 92, 246, 0.25); 
+}
+
+#save-status { 
+    font-size: 0.85rem; 
+    color: #94a3b8; 
+    transition: opacity 0.3s; 
+}

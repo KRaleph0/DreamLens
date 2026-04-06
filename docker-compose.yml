@@ -1,15 +1,41 @@
-services:
-  oracle-xe:
-    image: gvenzl/oracle-xe:21-slim
-    environment:
-      ORACLE_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "1521:1521"
-    restart: unless-stopped
 
-  backend:
-    build: .
-    env_file:
-      - .env
+networks:
+  dreamlens-net:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dreamlens-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dreamlens-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: dreamlens-api
+    container_name: dreamlens-api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
     depends_on:
-      - oracle-xe
+      db:
+        condition: service_healthy
+    networks:
+      - dreamlens-net
+
+volumes:
+  postgres_data:

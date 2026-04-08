@@ -6,15 +6,13 @@ from app.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 앱 시작 시 DB 연결 확인
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     print("DB 연결 성공!")
     yield
-    # 앱 종료 시 풀 정리
     await engine.dispose()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, root_path="/api")
 
 app.add_middleware(
     CORSMiddleware,

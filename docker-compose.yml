@@ -24,18 +24,18 @@ services:
       timeout: 5s
       retries: 5
 
-  api:
-    image: dreamlens-api
-    container_name: dreamlens-api
-    restart: unless-stopped
-    env_file: .env
-    ports:
-      - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - dreamlens-net
+  #api:
+   # image: dreamlens-api
+    #container_name: dreamlens-api
+    #restart: unless-stopped
+    #env_file: .env
+    #ports:
+     # - "8000:8000"
+    #depends_on:
+     # db:
+      #  condition: service_healthy
+    #networks:
+      #- dreamlens-net
 
 volumes:
   postgres_data:

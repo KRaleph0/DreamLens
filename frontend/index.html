@@ -12,11 +12,17 @@
 </head>
 <body class="d-flex flex-column min-vh-100">
 
-    <nav class="navbar border-bottom border-secondary-subtle px-4 py-3">
-        <a class="navbar-brand fw-bold text-primary-custom" href="#">🔎 Dreamlens</a>
-        <div class="d-flex align-items-center">
-            <span class="me-3 text-light">환영합니다, 사용자님</span>
-            <button class="btn btn-outline-light btn-sm">로그아웃</button>
+    <nav class="navbar border-bottom border-secondary-subtle px-4 py-3 mb-4 d-flex justify-content-between align-items-center">
+        <a class="navbar-brand fw-bold text-primary-custom" href="index.html">🔎 Dreamlens</a>
+        
+        <div class="d-flex align-items-center gap-3">
+            <a href="./pages/profile.html" class="text-decoration-none" title="마이페이지 설정">
+                <div id="profile-avatar" class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center shadow-sm" style="width: 42px; height: 42px; font-size: 1.2rem; font-weight: bold; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                    U
+                </div>
+            </a>
+            
+            <button class="btn btn-sm btn-outline-secondary" id="logout-btn">로그아웃</button>
         </div>
     </nav>
 

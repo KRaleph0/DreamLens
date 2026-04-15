@@ -2,88 +2,51 @@
 
 const API_BASE = '/api';
 
-// ── Access Token 관리 ────────────────────────────────────────
-function getAccessToken() {
-    return sessionStorage.getItem('access_token');
-}
+// ── Access Token 관리 (백엔드 인프라) ──────────────────────────
+function getAccessToken() { return sessionStorage.getItem('access_token'); }
+function saveAccessToken(token) { sessionStorage.setItem('access_token', token); }
+function clearAccessToken() { sessionStorage.removeItem('access_token'); }
 
-function saveAccessToken(token) {
-    sessionStorage.setItem('access_token', token);
-}
-
-function clearAccessToken() {
-    sessionStorage.removeItem('access_token');
-}
-
-// ── Access Token 갱신 (Refresh Token 쿠키 사용) ──────────────
+// ── Access Token 갱신 (백엔드 인프라) ──────────────────────────
 async function refreshAccessToken() {
     try {
         const res = await fetch(`${API_BASE}/auth/refresh`, {
-            method: 'POST',
-            credentials: 'include',  // Refresh Token 쿠키 자동 포함
+            method: 'POST', credentials: 'include',
         });
         if (!res.ok) return null;
         const data = await res.json();
         saveAccessToken(data.access_token);
         return data.access_token;
-    } catch {
-        return null;
-    }
+    } catch { return null; }
 }
 
-// ── 인증 fetch (401 시 자동 갱신) ───────────────────────────
-async function authFetch(path, options = {}) {
-    let token = getAccessToken();
-
-    const res = await fetch(`${API_BASE}${path}`, {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            ...options.headers,
-        },
-        credentials: 'include',
-    });
-
-    // 401이면 토큰 갱신 후 재시도
-    if (res.status === 401) {
-        token = await refreshAccessToken();
-        if (!token) {
-            // 갱신 실패 → 로그인 페이지로
-            clearAccessToken();
-            location.href = 'pages/login.html';
-            return null;
-        }
-        return fetch(`${API_BASE}${path}`, {
-            ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-                ...options.headers,
-            },
-            credentials: 'include',
-        });
-    }
-
-    return res;
-}
-
-// ── 로그아웃 ─────────────────────────────────────────────────
+// ── 로그아웃 처리 ─────────────────────────────────────────────
 async function logout() {
-    await fetch(`${API_BASE}/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-    });
+    if (!confirm("로그아웃 하시겠습니까?")) return;
+
+    // 1. 프론트엔드 임시 데이터 삭제
+    localStorage.removeItem('userNickname');
+    localStorage.removeItem('isLoggedIn');
     clearAccessToken();
+
+    // 2. 백엔드 세션 종료 시도 (선택 사항)
+    try {
+        await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+    } catch (e) {
+        console.log("로컬 테스트: API 로그아웃 생략");
+    }
+
+    alert("로그아웃 되었습니다.");
     location.href = 'pages/login.html';
 }
 
-// ── 로그인 여부 확인 ─────────────────────────────────────────
+// ── 로그인 여부 확인 (깡통 + 백엔드 융합) ───────────────────────
 async function checkAuth() {
-    let token = getAccessToken();
+    // 로컬 스토리지에 로그인 정보가 있으면 통과 (임시)
+    if (localStorage.getItem('isLoggedIn') === 'true') return true;
 
+    let token = getAccessToken();
     if (!token) {
-        // Access Token 없으면 Refresh Token으로 갱신 시도
         token = await refreshAccessToken();
         if (!token) {
             location.href = 'pages/login.html';
@@ -93,74 +56,73 @@ async function checkAuth() {
     return true;
 }
 
-// ── DOMContentLoaded ─────────────────────────────────────────
+// ── 상세 보기 함수 (조회 기능) ──────────────────────────────────
+function showDreamDetail(id) {
+    const dreamList = JSON.parse(localStorage.getItem('dreamList') || '[]');
+    const dream = dreamList.find(d => d.id === id);
+    if (dream) {
+        alert(`[${dream.date} 기록]\n\n${dream.content}`);
+    }
+}
+
+// ── 메인 실행 로직 (통합 리스너) ────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+    // 1. 인증 체크 (백엔드 문지기)
     const isAuth = await checkAuth();
     if (!isAuth) return;
 
-    // 로그아웃 버튼 연동
-    const logoutBtn = document.querySelector('button.btn-outline-light');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
-    }
-
-    // TODO: 최근 꿈일기 목록 API 연동 (Sprint 1 완료 후)
-    // loadRecentDreams();
-
-    // TODO: 최근 분석 결과 API 연동 (Sprint 3 완료 후)
-    // loadRecentAnalysis();
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. 로그인 여부 확인 및 닉네임 표시
-    const nickname = localStorage.getItem('userNickname') || '여행자';
-    const welcomeMsg = document.getElementById('welcome-message');
-    if (welcomeMsg) welcomeMsg.textContent = `${nickname}님, 어제는 어떤 꿈을 꾸셨나요?`;
-
-    // 2. 로그아웃 버튼 기능 연결
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (confirm("로그아웃 하시겠습니까?")) {
-                // 깡통 로직: 로컬 스토리지 비우기 (실제로는 세션/토큰 삭제)
-                localStorage.removeItem('userNickname');
-                localStorage.removeItem('isLoggedIn'); // 로그인 상태값 예시
-                
-                alert("로그아웃 되었습니다. 안전하게 대기실로 이동합니다.");
-                location.href = './pages/login.html';
-            }
-        });
-    }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. 로그인 여부 확인 및 닉네임 가져오기
+    // 2. 상단 UI 업데이트 (환영 문구 & 아바타)
     const nickname = localStorage.getItem('userNickname') || '사용자';
     const welcomeMsg = document.getElementById('welcome-message');
     if (welcomeMsg) welcomeMsg.textContent = `${nickname}님, 어제는 어떤 꿈을 꾸셨나요?`;
 
-    // 🌟 [추가된 부분] 프로필 아바타에 닉네임 첫 글자 넣기
     const avatar = document.getElementById('profile-avatar');
     if (avatar) {
-        // 닉네임의 첫 글자만 떼어서 대문자로 변환해 넣음
-        avatar.textContent = nickname.charAt(0).toUpperCase(); 
+        // 프로필 이미지가 저장되어 있다면 이미지로, 없으면 이니셜로 표시
+        const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+        if (savedProfile.profileImage) {
+            avatar.innerHTML = `<img src="${savedProfile.profileImage}" class="rounded-circle" style="width:100%; height:100%; object-fit:cover;">`;
+            avatar.classList.remove('bg-primary');
+        } else {
+            avatar.textContent = nickname.charAt(0).toUpperCase();
+        }
     }
 
-    // 2. 로그아웃 버튼 기능
-    const logoutBtn = document.getElementById('logout-btn');
+    // 3. 로그아웃 버튼 이벤트 바인딩
+    const logoutBtn = document.getElementById('logout-btn') || document.querySelector('button.btn-outline-light');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
+        logoutBtn.onclick = (e) => {
             e.preventDefault();
-            if (confirm("로그아웃 하시겠습니까?")) {
-                localStorage.removeItem('userNickname');
-                localStorage.removeItem('isLoggedIn'); 
-                
-                alert("안전하게 로그아웃 되었습니다.");
-                location.href = './pages/login.html';
-            }
-        });
+            logout();
+        };
     }
-    
-    // ... (이후 꿈일기 목록 렌더링 로직 등등) ...
+
+    // 🌟 4. 꿈일기 목록 렌더링 (사라졌던 배열 기반 로직 복구)
+    const listContainer = document.getElementById('recent-dreams-list');
+    if (listContainer) {
+        const dreamList = JSON.parse(localStorage.getItem('dreamList') || '[]');
+
+        if (dreamList.length === 0) {
+            listContainer.innerHTML = `
+                <div class="text-center py-5 text-secondary">
+                    <p>아직 기록된 꿈이 없습니다.</p>
+                    <a href="./pages/diary-form.html" class="btn btn-sm btn-outline-primary">첫 일기 쓰기</a>
+                </div>
+            `;
+        } else {
+            // 저장된 배열을 순회하며 카드 UI 생성
+            listContainer.innerHTML = dreamList.map(dream => `
+                <div class="card bg-dark border-secondary mb-3 shadow-sm dream-card" 
+                     style="cursor: pointer;" onclick="showDreamDetail(${dream.id})">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-primary-subtle text-primary">${dream.date}</span>
+                            <small class="text-secondary">상세보기 &gt;</small>
+                        </div>
+                        <p class="card-text text-truncate text-light-emphasis">${dream.content}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
 });

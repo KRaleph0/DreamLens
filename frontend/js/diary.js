@@ -1,98 +1,121 @@
-// frontend/js/diary.js (풀버전)
+// frontend/js/diary.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. HTML에서 요소들 정확하게 가져오기
     const dateInput = document.getElementById('diary-date');
     const contentInput = document.getElementById('diary-content');
     const charCount = document.getElementById('char-count');
     const saveStatus = document.getElementById('save-status');
-    const diaryForm = document.getElementById('diary-form'); // 폼 자체를 가져옵니다
+    const diaryForm = document.getElementById('diary-form');
 
-    // 2. 날짜 기본값을 '오늘'로 설정 [FR-DREAM-01]
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
+    // ✨ [추가] 주소창에서 수정할 일기의 ID 확인 (?editId=123)
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('editId') ? parseInt(urlParams.get('editId')) : null;
+
+    // 모드 판별: editId가 있으면 수정 모드, 없으면 새 글 작성 모드
+    const isEditMode = editId !== null;
+
+    if (isEditMode) {
+        // [수정 모드 로직]
+        document.querySelector('h2.fw-bold').textContent = "꿈일기 수정하기";
+        diaryForm.querySelector('button[type="submit"]').textContent = "수정 완료";
+
+        // 기존 데이터 불러와서 폼에 채워 넣기
+        const dreamList = JSON.parse(localStorage.getItem('dreamList') || '[]');
+        const existingDream = dreamList.find(d => d.id === editId);
+
+        if (existingDream) {
+            dateInput.value = existingDream.date;
+            contentInput.value = existingDream.content;
+            charCount.textContent = existingDream.content.length;
+        } else {
+            alert("존재하지 않는 일기입니다.");
+            location.href = 'diary-list.html';
+            return;
+        }
+    } else {
+        // [새 글 작성 모드 로직] (기존과 동일)
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+
+        // 미저장 draft 복원 (새 글 작성일 때만 작동)
+        const savedDraft = localStorage.getItem('dream_draft_content');
+        if (savedDraft) {
+            if (confirm("작성 중이던 임시 저장본이 있습니다. 복원하시겠습니까?")) {
+                contentInput.value = savedDraft;
+                charCount.textContent = savedDraft.length;
+                saveStatus.textContent = "임시 저장본 복원됨";
+            } else {
+                localStorage.removeItem('dream_draft_content');
+            }
+        }
+    }
 
     // 3. 글자 수 실시간 카운팅
     contentInput.addEventListener('input', () => {
         const length = contentInput.value.length;
         charCount.textContent = length;
-        if (length < 20) {
-            charCount.classList.add('text-danger');
-        } else {
-            charCount.classList.remove('text-danger');
-        }
+        charCount.classList.toggle('text-danger', length < 20);
     });
 
-    // 4. 미저장 draft 복원 안내 [FR-DREAM-04]
-    const savedDraft = localStorage.getItem('dream_draft_content');
-    if (savedDraft) {
-        const restore = confirm("작성 중이던 임시 저장본이 있습니다. 복원하시겠습니까?");
-        if (restore) {
-            contentInput.value = savedDraft;
-            charCount.textContent = savedDraft.length;
-            saveStatus.textContent = "임시 저장본 복원됨";
-        } else {
-            localStorage.removeItem('dream_draft_content');
-        }
-    }
-
-    // 5. 30초마다 자동 임시 저장 (Auto-save) 로직 [FR-DREAM-04]
+    // 4. 30초마다 자동 임시 저장 (수정 모드일 때도 백업 용도로 작동)
     setInterval(() => {
         const currentContent = contentInput.value;
-        // 내용이 5글자 이상일 때만 자동 저장
         if (currentContent.length > 5) {
             saveStatus.textContent = "임시 저장 중...";
+            // 팁: 수정 모드일 때는 다른 키워드로 저장하여 원본을 지키는 것도 좋습니다만, 지금은 심플하게 덮어씁니다.
             localStorage.setItem('dream_draft_content', currentContent);
             localStorage.setItem('dream_draft_date', dateInput.value);
-            
+
             setTimeout(() => {
                 const now = new Date();
                 saveStatus.textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')} 자동 저장됨`;
             }, 500);
         }
-    }, 30000); 
+    }, 30000);
 
-    // 🌟 6. 대망의 '진짜 저장' 로직 (폼 제출 이벤트 사용)
-    // 버튼 클릭을 찾는 게 아니라, 엔터를 치든 버튼을 누르든 폼이 '제출'될 때 발동합니다.
+    // 🌟 5. 정식 저장 / 수정 완료 로직
     diaryForm.addEventListener('submit', (e) => {
-        // [아주 중요!] 폼의 기본 기능(새로고침)을 막아줍니다. 이거 없으면 1초 만에 화면이 날아갑니다.
-        e.preventDefault(); 
+        e.preventDefault();
 
         const date = dateInput.value;
         const content = contentInput.value;
 
-        // 방어 코드: 혹시라도 빈칸이 있으면 막기
         if (!date || !content) {
             alert("날짜와 내용을 모두 입력해주세요!");
             return;
         }
 
-        // [BACKEND 연동 포인트] 
-        // 나중에 fetch('/api/dreams', { method: 'POST', body: JSON.stringify(newDream) }) 로 수정할 영역
-        const newDream = {
-            id: Date.now(), // 임시 고유 ID
-            date: date,
-            content: content,
-            createdAt: new Date().toISOString()
-        };
+        let dreamList = JSON.parse(localStorage.getItem('dreamList') || '[]');
 
-        // 1. 기존 리스트 꺼내기 (없으면 빈 배열 [])
-        const existingDreams = JSON.parse(localStorage.getItem('dreamList') || '[]');
-    
-        // 2. 새 꿈일기를 리스트 맨 앞에 밀어넣기
-        existingDreams.unshift(newDream);
-    
-        // 3. 변경된 리스트를 다시 로컬 스토리지에 덮어쓰기
-        localStorage.setItem('dreamList', JSON.stringify(existingDreams));
+        if (isEditMode) {
+            // [수정 완료 처리]
+            // 기존 배열에서 id가 일치하는 항목을 찾아서 내용만 업데이트
+            const targetIndex = dreamList.findIndex(d => d.id === editId);
+            if (targetIndex !== -1) {
+                dreamList[targetIndex].date = date;
+                dreamList[targetIndex].content = content;
+                // updated_at 등을 추가해도 좋습니다.
+            }
+            localStorage.setItem('dreamList', JSON.stringify(dreamList));
+            alert("수정되었습니다.");
+            location.href = `diary-detail.html?id=${editId}`; // 수정한 일기 상세로 돌아가기
 
-        // 4. 정식 저장이 끝났으니 임시 저장(Draft) 찌꺼기는 깨끗하게 삭제
+        } else {
+            // [새 글 저장 처리]
+            const newDream = {
+                id: Date.now(),
+                date: date,
+                content: content,
+                createdAt: new Date().toISOString()
+            };
+            dreamList.unshift(newDream);
+            localStorage.setItem('dreamList', JSON.stringify(dreamList));
+            alert("꿈일기가 성공적으로 기록되었습니다! 🌙");
+            location.href = '../index.html';
+        }
+
+        // 임시 저장 찌꺼기 삭제
         localStorage.removeItem('dream_draft_content');
         localStorage.removeItem('dream_draft_date');
-
-        // 완료 알림
-        alert("꿈일기가 성공적으로 기록되었습니다! 🌙");
-    
-        // 메인 화면으로 멋지게 이동
-        location.href = '../index.html'; 
     });
 });

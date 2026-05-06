@@ -59,13 +59,9 @@ async function checkAuth() {
     return true;
 }
 
-// ── 상세 보기 함수 (조회 기능) ──────────────────────────────────
+// ── 상세 보기 함수 (조회 기능 - Alert 제거 후 링크 이동) ────────────────
 function showDreamDetail(id) {
-    const dreamList = JSON.parse(localStorage.getItem('dreamList') || '[]');
-    const dream = dreamList.find(d => d.id === id);
-    if (dream) {
-        alert(`[${dream.date} 기록]\n\n${dream.content}`);
-    }
+    location.href = `pages/diary-detail.html?id=${id}`;
 }
 
 // ── 메인 실행 로직 (통합 리스너) ────────────────────────────────

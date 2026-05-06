@@ -9,6 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const expListContainer = document.getElementById('exp-list');
     const saveStatus = document.getElementById('save-status');
 
+    // ✨ 주소창에서 수정할 ID 가져오기 (?editId=123)
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('editId') ? parseInt(urlParams.get('editId')) : null;
+    const isEditMode = editId !== null;
+
     // ── 1. 기존 데이터 불러오기 및 리스트 렌더링 ──
     let experienceData = JSON.parse(localStorage.getItem('experienceList') || '[]');
 
@@ -19,7 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         expListContainer.innerHTML = experienceData.map(exp => `
-            <div class="p-3 border border-secondary-subtle rounded bg-dark position-relative mb-2">
+            <div class="p-3 border border-secondary-subtle rounded bg-dark position-relative mb-2 hover-glow"
+                 style="cursor: pointer;"
+                 onclick="location.href='experience-detail.html?id=${exp.id}'">
+                
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="mb-0 fw-bold">${exp.title}</h6>
                     <div>
@@ -35,26 +43,44 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
-    // 초기 화면 그리기
     renderList();
 
-    // ── 2. 미저장 draft 복원 안내 ──
-    const savedDraftContent = localStorage.getItem('exp_draft_content');
-    if (savedDraftContent) {
-        if (confirm("작성 중이던 경험 기록이 있습니다. 복원하시겠습니까?")) {
-            expContent.value = savedDraftContent;
-            titleInput.value = localStorage.getItem('exp_draft_title') || '';
-            timeSelect.value = localStorage.getItem('exp_draft_tag') || '';
+    // ── ✨ 2. 모드 판별 및 데이터 채우기 (수정 모드 vs 새 글 모드) ──
+    if (isEditMode) {
+        // UI 텍스트를 '수정'에 맞게 변경
+        expForm.previousElementSibling.textContent = "경험 수정하기";
+        expForm.querySelector('button[type="submit"]').textContent = "수정 완료";
 
-            // 토큰 수 다시 계산
-            tokenCalc.textContent = Math.ceil(savedDraftContent.length * 1.5);
-            saveStatus.textContent = "임시 저장본 복원됨";
+        // 기존 데이터 찾아서 폼에 채워넣기
+        const existingExp = experienceData.find(e => e.id === editId);
+        if (existingExp) {
+            titleInput.value = existingExp.title;
+            timeSelect.value = existingExp.timeValue;
+            expContent.value = existingExp.content;
+            tokenCalc.textContent = existingExp.tokens;
         } else {
-            clearDraft();
+            alert("존재하지 않는 경험 기록입니다.");
+            location.href = 'experience.html';
+            return;
+        }
+    } else {
+        // [새 글 모드] 미저장 draft 복원 안내
+        const savedDraftContent = localStorage.getItem('exp_draft_content');
+        if (savedDraftContent) {
+            if (confirm("작성 중이던 경험 기록이 있습니다. 복원하시겠습니까?")) {
+                expContent.value = savedDraftContent;
+                titleInput.value = localStorage.getItem('exp_draft_title') || '';
+                timeSelect.value = localStorage.getItem('exp_draft_tag') || '';
+
+                tokenCalc.textContent = Math.ceil(savedDraftContent.length * 1.5);
+                saveStatus.textContent = "임시 저장본 복원됨";
+            } else {
+                clearDraft();
+            }
         }
     }
 
-    // ── 3. 실시간 토큰 수 가계산 (기존 로직 유지) ──
+    // ── 3. 실시간 토큰 수 가계산 ──
     expContent.addEventListener('input', () => {
         const textLength = expContent.value.length;
         const estimatedTokens = Math.ceil(textLength * 1.5);
@@ -83,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('exp_draft_tag');
     }
 
-    // ── 5. 경험 등록 폼 제출 (진짜 저장) ──
+    // ── 5. 경험 등록/수정 폼 제출 ──
     expForm.addEventListener('submit', (e) => {
         e.preventDefault();
 
@@ -93,31 +119,45 @@ document.addEventListener('DOMContentLoaded', () => {
         const content = expContent.value;
         const tokens = tokenCalc.textContent;
 
-        // 새 데이터 객체 생성 (요약 상태는 'pending'으로 설정)
-        const newExperience = {
-            id: Date.now(),
-            title: title,
-            timeValue: timeValue,
-            timeText: timeText,
-            content: content,
-            tokens: tokens,
-            status: 'pending', // 나중에 백엔드 작업 완료 시 'completed'로 바뀔 예정
-            createdAt: new Date().toISOString()
-        };
+        if (isEditMode) {
+            // ✨ [수정 모드] 기존 배열 요소 내용 덮어쓰기
+            const targetIndex = experienceData.findIndex(e => e.id === editId);
+            if (targetIndex !== -1) {
+                experienceData[targetIndex].title = title;
+                experienceData[targetIndex].timeValue = timeValue;
+                experienceData[targetIndex].timeText = timeText;
+                experienceData[targetIndex].content = content;
+                experienceData[targetIndex].tokens = tokens;
+            }
+            localStorage.setItem('experienceList', JSON.stringify(experienceData));
 
-        // 로컬 스토리지에 저장
-        experienceData.unshift(newExperience);
-        localStorage.setItem('experienceList', JSON.stringify(experienceData));
+            alert("성공적으로 수정되었습니다!");
+            clearDraft();
+            location.href = `experience-detail.html?id=${editId}`; // 다시 상세 페이지로 튕겨줌
 
-        // 목록 다시 그리기
-        renderList();
+        } else {
+            // ✨ [새 글 모드] 리스트 맨 위에 새로 추가
+            const newExperience = {
+                id: Date.now(),
+                title: title,
+                timeValue: timeValue,
+                timeText: timeText,
+                content: content,
+                tokens: tokens,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
 
-        // 폼 초기화 및 임시저장 삭제
-        expForm.reset();
-        tokenCalc.textContent = '0';
-        saveStatus.textContent = '';
-        clearDraft();
+            experienceData.unshift(newExperience);
+            localStorage.setItem('experienceList', JSON.stringify(experienceData));
 
-        alert("경험이 등록되었습니다! (백그라운드에서 요약이 생성됩니다)");
+            renderList(); // 목록 다시 그리기
+            expForm.reset(); // 폼 비우기
+            tokenCalc.textContent = '0';
+            saveStatus.textContent = '';
+            clearDraft();
+
+            alert("경험이 등록되었습니다! (백그라운드에서 요약이 생성됩니다)");
+        }
     });
 });

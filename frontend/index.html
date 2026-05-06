@@ -62,10 +62,13 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card h-100 p-3 shadow-sm" onclick="alert('Task B-1/B-2 (기간별 분석) API 호출 대기중')">
+                <!-- ✨ onclick 수정: experience.html로 이동하도록 변경 -->
+                <div class="card h-100 p-3 shadow-sm hover-lift" style="cursor: pointer; transition: transform 0.2s;"
+                    onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'"
+                    onclick="location.href='pages/experience.html'">
                     <div class="card-body text-center">
-                        <h4 class="card-title text-primary-custom mb-3">📊 기간별 분석</h4>
-                        <p class="card-text text-secondary">선택한 기간 동안의 꿈 패턴과 통계를 한눈에 확인하세요.</p>
+                        <h4 class="card-title text-primary-custom mb-3">🔍 경험 기록 및 심층 해석</h4>
+                        <p class="card-text text-secondary">나의 실생활 경험을 미리 기록해 두고, 꿈과 결합하여 진짜 의미를 깊게 파헤쳐보세요.</p>
                     </div>
                 </div>
             </div>

@@ -24,12 +24,13 @@ async function refreshAccessToken() {
 async function logout() {
     if (!confirm("로그아웃 하시겠습니까?")) return;
 
-    // 1. 프론트엔드 임시 데이터 삭제
+    // 1. 프론트엔드 임시 데이터 삭제 (✨ sessionStorage 추가)
     localStorage.removeItem('userNickname');
     localStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem('isLoggedIn');
     clearAccessToken();
 
-    // 2. 백엔드 세션 종료 시도 (선택 사항)
+    // 2. 백엔드 세션 종료 시도
     try {
         await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
     } catch (e) {
@@ -42,8 +43,10 @@ async function logout() {
 
 // ── 로그인 여부 확인 (깡통 + 백엔드 융합) ───────────────────────
 async function checkAuth() {
-    // 로컬 스토리지에 로그인 정보가 있으면 통과 (임시)
-    if (localStorage.getItem('isLoggedIn') === 'true') return true;
+    // ✨ [변경] 자동(local) 또는 일회성(session) 둘 중 하나라도 true면 통과
+    if (localStorage.getItem('isLoggedIn') === 'true' || sessionStorage.getItem('isLoggedIn') === 'true') {
+        return true;
+    }
 
     let token = getAccessToken();
     if (!token) {

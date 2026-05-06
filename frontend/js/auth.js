@@ -71,19 +71,30 @@ document.addEventListener('DOMContentLoaded', () => {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const btn      = loginForm.querySelector('button[type=submit]');
-            const email    = document.getElementById('login-email').value;
+            const btn = loginForm.querySelector('button[type=submit]');
+            const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
+
+            // ✨ [추가] 자동 로그인 체크 여부 확인
+            const isAutoLogin = document.getElementById('auto-login')?.checked;
 
             setLoading(btn, true);
             try {
                 const data = await apiPost('/auth/login', { email, password });
                 saveAccessToken(data.access_token);
-                
+
                 // [깡통 연동] 메인 화면 라우트 가드 통과를 위한 설정
-                localStorage.setItem('isLoggedIn', 'true');
+                if (isAutoLogin) {
+                    // 자동 로그인: 브라우저를 꺼도 유지되는 localStorage에 저장
+                    localStorage.setItem('isLoggedIn', 'true');
+                } else {
+                    // 일회성 로그인: 탭을 닫으면 날아가는 sessionStorage에 저장
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    localStorage.removeItem('isLoggedIn'); // 혹시 남아있을 쓰레기값 청소
+                }
+
                 if (!localStorage.getItem('userNickname')) {
-                    localStorage.setItem('userNickname', email.split('@')[0]); // 이메일 앞부분을 임시 닉네임으로
+                    localStorage.setItem('userNickname', email.split('@')[0]);
                 }
 
                 location.href = '../index.html';

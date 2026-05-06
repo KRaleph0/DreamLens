@@ -38,10 +38,18 @@
         <section class="text-center mb-5">
             <h1 class="fw-bold mb-3">당신의 무의식을 탐험하세요</h1>
             <p class="text-secondary mb-4">오늘 꾸었던 꿈이나 기억에 남는 실생활 경험을 기록하고 분석해보세요.</p>
-            <button class="btn btn-primary-custom btn-lg rounded-pill px-4 shadow"
-                onclick="location.href='pages/diary-form.html'">
-                + 새 꿈일기 작성하기
-            </button>
+        
+            <!-- ✨ 버튼 2개 나란히 배치 (색상 대비) -->
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-primary-custom btn-lg rounded-pill px-4 shadow"
+                    onclick="location.href='pages/diary-form.html'">
+                    + 새 꿈일기 작성하기
+                </button>
+                <button class="btn btn-warning btn-lg rounded-pill px-4 shadow fw-bold" style="color: #212529;"
+                    onclick="location.href='pages/experience-form.html'">
+                    + 새 경험 기록하기
+                </button>
+            </div>
         </section>
 
         <section class="row g-4 mb-5">
@@ -62,12 +70,12 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <!-- ✨ onclick 수정: experience.html로 이동하도록 변경 -->
+                <!-- ✨ 제목과 색상(text-warning) 변경 -->
                 <div class="card h-100 p-3 shadow-sm hover-lift" style="cursor: pointer; transition: transform 0.2s;"
                     onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'"
                     onclick="location.href='pages/experience.html'">
                     <div class="card-body text-center">
-                        <h4 class="card-title text-primary-custom mb-3">🔍 경험 기록 및 심층 해석</h4>
+                        <h4 class="card-title text-warning mb-3">🔍 경험 기록 목록</h4>
                         <p class="card-text text-secondary">나의 실생활 경험을 미리 기록해 두고, 꿈과 결합하여 진짜 의미를 깊게 파헤쳐보세요.</p>
                     </div>
                 </div>

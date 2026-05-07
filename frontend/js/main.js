@@ -125,3 +125,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 });
+
+// ── [추가] 최근 경험 기록 3개 렌더링 ──
+const recentExpList = document.getElementById('recent-experience-list');
+if (recentExpList) {
+    const expData = JSON.parse(localStorage.getItem('experienceList') || '[]');
+    const recentExps = expData.slice(0, 3); // 최신 3개만 자르기
+
+    if (recentExps.length === 0) {
+        recentExpList.innerHTML = '<div class="text-center py-4 text-secondary small">기록된 경험이 없습니다.</div>';
+    } else {
+        recentExpList.innerHTML = recentExps.map(exp => `
+                <div class="card bg-dark border-secondary mb-2 shadow-sm hover-glow-warning" 
+                     style="cursor: pointer;" 
+                     onclick="location.href='pages/experience-detail.html?id=${exp.id}'">
+                    <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                        <span class="text-light-emphasis small text-truncate" style="max-width: 70%;">${exp.title}</span>
+                        <span class="badge bg-secondary" style="font-size: 0.7rem;">${exp.timeText}</span>
+                    </div>
+                </div>
+            `).join('');
+    }
+}

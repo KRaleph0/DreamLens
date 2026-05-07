@@ -22,16 +22,31 @@ function isTokenExpired(token) {
 }
 
 // ── Access Token 갱신 ──────────────────────────────────────────
+let _isRefreshing = false;
+let _refreshQueue = [];
+
 async function refreshAccessToken() {
+    if (_isRefreshing) {
+        return new Promise(resolve => _refreshQueue.push(resolve));
+    }
+
+    _isRefreshing = true;
     try {
         const res = await fetch(`${API_BASE}/auth/refresh`, {
             method: 'POST', credentials: 'include',
         });
-        if (!res.ok) return null;
+        if (!res.ok) throw new Error();
         const data = await res.json();
         saveAccessToken(data.access_token);
+        _refreshQueue.forEach(r => r(data.access_token));
         return data.access_token;
-    } catch { return null; }
+    } catch {
+        _refreshQueue.forEach(r => r(null));
+        return null;
+    } finally {
+        _isRefreshing = false;
+        _refreshQueue = [];
+    }
 }
 
 // ── 토큰 자동 갱신 타이머 ──────────────────────────────────────

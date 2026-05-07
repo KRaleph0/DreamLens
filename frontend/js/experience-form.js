@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             alert("경험이 등록되었습니다! (백그라운드에서 요약이 생성됩니다)");
             clearDraft();
-            location.href = 'experience.html'; // 저장 후 목록 페이지로 이동
+            location.href = 'experience-list.html'; // 저장 후 목록 페이지로 이동
         }
     });
 });

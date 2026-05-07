@@ -31,30 +31,17 @@ function getAccessToken() {
     return sessionStorage.getItem('access_token');
 }
 
-// ── API fetch 공통 함수 (✨ 깡통 모킹 적용) ─────────────────
+// ── API fetch 공통 함수 ──────────────────────────────────────
 async function apiPost(path, body) {
-    /* [진짜 백엔드 통신 코드 - 나중에 병창님이 API 뚫어주면 주석 해제하세요!]
     const res = await fetch(`${API_BASE}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',  
+        credentials: 'include',
         body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) { throw new Error(data.detail || '오류가 발생했습니다.'); }
     return data;
-    */
-
-    // [현재 적용된 깡통(Mock) 로직] - 서버랑 통신하는 척 0.5초 대기 후 무조건 성공 반환
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            if (path === '/auth/login') {
-                resolve({ access_token: 'fake_jwt_token_12345' });
-            } else if (path === '/auth/register') {
-                resolve({ message: '회원가입 성공' });
-            }
-        }, 500); 
-    });
 }
 
 // ── DOMContentLoaded ─────────────────────────────────────────
@@ -80,18 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setLoading(btn, true);
             try {
-                const data = await apiPost('/auth/login', { email, password });
+                const autoLogin = document.getElementById('auto-login')?.checked ?? true;
+                const data = await apiPost('/auth/login', { email, password, auto_login: autoLogin });
                 saveAccessToken(data.access_token);
-
-                // [깡통 연동] 메인 화면 라우트 가드 통과를 위한 설정
-                if (isAutoLogin) {
-                    // 자동 로그인: 브라우저를 꺼도 유지되는 localStorage에 저장
-                    localStorage.setItem('isLoggedIn', 'true');
-                } else {
-                    // 일회성 로그인: 탭을 닫으면 날아가는 sessionStorage에 저장
-                    sessionStorage.setItem('isLoggedIn', 'true');
-                    localStorage.removeItem('isLoggedIn'); // 혹시 남아있을 쓰레기값 청소
-                }
 
                 if (!localStorage.getItem('userNickname')) {
                     localStorage.setItem('userNickname', email.split('@')[0]);

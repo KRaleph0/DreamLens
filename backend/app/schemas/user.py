@@ -13,6 +13,7 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    auto_login: bool = True
 
 # ── 응답 ──────────────────────────────────────────
 class UserResponse(BaseModel):

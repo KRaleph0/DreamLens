@@ -80,14 +80,16 @@ async def login(body: LoginRequest, response: Response, db: AsyncSession = Depen
     db.add(rt)
 
     # Refresh Token httpOnly 쿠키 설정
-    response.set_cookie(
+    cookie_params = dict(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
         secure=True,
         samesite="lax",
-        max_age=60 * 60 * 24 * settings.refresh_token_expire_days
     )
+    if body.auto_login:
+        cookie_params["max_age"] = 60 * 60 * 24 * settings.refresh_token_expire_days
+    response.set_cookie(**cookie_params)
 
     return TokenResponse(access_token=access_token)
 

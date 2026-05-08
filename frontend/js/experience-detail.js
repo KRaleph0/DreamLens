@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const exp = experienceData.find(e => e.id === expId);
 
     if (exp) {
-        // 상태 뱃지 설정
         const statusBadge = exp.status === 'pending'
             ? '<span class="badge bg-warning text-dark me-2">요약 생성 중 ⏳</span>'
             : '<span class="badge bg-success me-2">요약 완료</span>';
@@ -33,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${exp.content.replace(/\n/g, '<br>')}
             </div>
             
-            <!-- 추후 AI 요약이 완료되면 보여줄 영역 (미리 뼈대만 잡아둠) -->
             ${exp.summary ? `
             <div class="mt-4 p-3 bg-dark border border-success border-opacity-25 rounded">
                 <h6 class="text-success mb-2 fw-bold">✨ AI 요약</h6>
@@ -43,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         actionBtns.style.setProperty('display', 'flex', 'important');
 
-        // 수정 & 삭제 버튼 이벤트
         const btnEdit = document.getElementById('btn-edit');
         const btnDelete = document.getElementById('btn-delete');
 
@@ -53,20 +50,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 experienceData = experienceData.filter(e => e.id !== expId);
                 localStorage.setItem('experienceList', JSON.stringify(experienceData));
                 alert("삭제되었습니다.");
-                location.href = 'experience.html'; // 리스트로 튕겨내기
+                location.href = 'experience-list.html'; // ✨ 변경됨
             }
         });
 
         // [수정 기능 연동 준비]
         btnEdit.addEventListener('click', () => {
-            location.href = `experience.html?editId=${expId}`;
+            // ✨ 버그 수정 완료! (form 페이지로 정확히 이동)
+            location.href = `experience-form.html?editId=${expId}`;
         });
 
     } else {
         container.innerHTML = `
             <div class="text-center py-5 text-secondary">
                 <h5>존재하지 않거나 삭제된 기록입니다.</h5>
-                <button class="btn btn-primary-custom mt-3" onclick="location.href='experience.html'">목록으로 돌아가기</button>
+                <button class="btn btn-primary-custom mt-3" onclick="location.href='experience-list.html'">목록으로 돌아가기</button>
             </div>
         `;
     }

@@ -15,10 +15,60 @@
         .diary-paper {
             background-color: #212529;
             border-left: 4px solid #6f42c1;
-            /* 보라색 포인트 */
             line-height: 1.8;
             font-size: 1.1rem;
             letter-spacing: 0.5px;
+        }
+
+        /* ✨ 파생 키워드 호버 애니메이션 관련 CSS */
+        .keyword-trigger {
+            background-color: #2b2f36;
+            border: 1px dashed #6c757d;
+            transition: all 0.2s ease;
+        }
+
+        .keyword-trigger:hover {
+            border-color: #6f42c1;
+            background-color: #353a42;
+        }
+
+        .keyword-hover-card {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            top: -20px;
+            left: calc(100% + 15px);
+            /* 트리거 박스 바로 오른쪽에 위치 */
+            width: max-content;
+            min-width: 220px;
+            max-width: 260px;
+            background-color: #1a1d21;
+            border: 1px solid #495057;
+            z-index: 1070;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transform: translateX(-15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        /* 말풍선 꼬리표(삼각형) */
+        .keyword-hover-card::before {
+            content: '';
+            position: absolute;
+            top: 35px;
+            left: -6px;
+            width: 10px;
+            height: 10px;
+            background-color: #1a1d21;
+            border-left: 1px solid #495057;
+            border-bottom: 1px solid #495057;
+            transform: rotate(45deg);
+        }
+
+        /* 마우스 호버 시 카드 표시 */
+        .keyword-trigger-container:hover .keyword-hover-card {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(0);
         }
     </style>
 </head>
@@ -26,23 +76,89 @@
 <body class="d-flex flex-column min-vh-100">
 
     <nav class="navbar border-bottom border-secondary-subtle px-4 py-3 mb-4">
-        <!-- 뒤로가기 버튼 -->
-        <a href="javascript:history.back()" class="text-secondary text-decoration-none me-3 fs-5" title="뒤로가기">⬅️</a>
-        <span class="navbar-brand fw-bold text-primary-custom mb-0 h1">🔎 Dreamlens</span>
+        <a class="navbar-brand fw-bold text-primary-custom" href="../index.html">🔎 Dreamlens</a>
     </nav>
 
     <main class="container flex-grow-1" style="max-width: 700px;">
-        <!-- 일기 렌더링 영역 -->
         <div id="detail-container">
-            <div class="text-center py-5 text-secondary">로딩 중...</div>
+            <div class="text-center py-5 text-secondary">
+                <div class="spinner-border text-primary-custom" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
         </div>
 
-        <!-- 하단 액션 버튼 -->
-        <div class="d-flex justify-content-end gap-2 mt-4" id="action-buttons" style="display: none !important;">
-            <button id="btn-edit" class="btn btn-outline-secondary">수정</button>
-            <button id="btn-delete" class="btn btn-outline-danger">삭제</button>
+        <div class="d-flex justify-content-between align-items-center mt-4" id="action-buttons"
+            style="display: none !important;">
+            <div class="d-flex gap-2" id="analysis-buttons"></div>
+            <div class="d-flex gap-2">
+                <button id="btn-edit" class="btn btn-outline-secondary">수정</button>
+                <button id="btn-delete" class="btn btn-outline-danger">삭제</button>
+            </div>
         </div>
     </main>
+
+    <div class="modal fade" id="taskAModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border-secondary">
+                <div class="modal-header border-secondary-subtle">
+                    <h5 class="modal-title text-primary-custom fw-bold">✨ 간단 해몽</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+
+                    <div id="taskA-loading" class="text-center py-5">
+                        <div class="spinner-border text-primary-custom mb-3" role="status"></div>
+                        <h6 class="text-light">AI가 무의식을 분석하고 있습니다...</h6>
+                        <p class="text-secondary small mb-0">꿈의 주요 상징과 키워드를 추출 중입니다.</p>
+                    </div>
+
+                    <div id="taskA-result" class="d-none">
+
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+                            <div style="flex: 1;">
+                                <h6 class="fw-bold text-secondary mb-2">📌 주요 키워드</h6>
+                                <div id="taskA-keywords" class="d-flex gap-2 flex-wrap">
+                                </div>
+                            </div>
+
+                            <div class="position-relative keyword-trigger-container ms-3">
+                                <div class="keyword-trigger px-3 py-2 rounded text-secondary small d-flex flex-column align-items-center justify-content-center"
+                                    style="cursor: help; min-width: 80px;">
+                                    <span class="fs-5 mb-1">💡</span>
+                                    <span style="font-size: 0.75rem; letter-spacing: -0.5px;">파생 키워드</span>
+                                </div>
+
+                                <div class="keyword-hover-card rounded p-3">
+                                    <div class="mb-3">
+                                        <h6 class="text-light-emphasis fw-bold mb-2" style="font-size: 0.85rem;">주변 키워드
+                                            (Sub)</h6>
+                                        <div id="taskA-secondary-keywords" class="d-flex gap-1 flex-wrap"></div>
+                                    </div>
+                                    <div>
+                                        <h6 class="text-light-emphasis fw-bold mb-2" style="font-size: 0.85rem;">보조 키워드
+                                            (Detail)</h6>
+                                        <div id="taskA-tertiary-keywords" class="d-flex gap-1 flex-wrap"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h6 class="fw-bold text-secondary mb-2">📖 해몽 요약</h6>
+                            <p id="taskA-summary" class="text-light-emphasis" style="line-height: 1.6;"></p>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top border-secondary-subtle text-secondary small text-center">
+                            본 해석은 AI 기반이며, 전문적 심리 상담을 대체하지 않습니다.
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/diary-detail.js"></script>

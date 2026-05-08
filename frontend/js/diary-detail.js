@@ -1,20 +1,29 @@
+// frontend/js/diary-detail.js
+
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. 주소창에서 id 값 뽑아오기
     const urlParams = new URLSearchParams(window.location.search);
     const dreamId = parseInt(urlParams.get('id'));
 
     const container = document.getElementById('detail-container');
     const actionBtns = document.getElementById('action-buttons');
+    const analysisBtnsContainer = document.getElementById('analysis-buttons');
 
-    // 2. 데이터 불러오기
     let dreamList = JSON.parse(localStorage.getItem('dreamList') || '[]');
-    const dream = dreamList.find(d => d.id === dreamId);
+    let dream = dreamList.find(d => d.id === dreamId);
 
-    // 3. 화면 렌더링
+    // 모달 DOM
+    const taskAModal = new bootstrap.Modal(document.getElementById('taskAModal'));
+    const loadingUI = document.getElementById('taskA-loading');
+    const resultUI = document.getElementById('taskA-result');
+    const keywordBox = document.getElementById('taskA-keywords');
+    const secKeywordBox = document.getElementById('taskA-secondary-keywords'); // 주변 키워드
+    const terKeywordBox = document.getElementById('taskA-tertiary-keywords');  // 보조 키워드
+    const summaryBox = document.getElementById('taskA-summary');
+
     if (dream) {
         container.innerHTML = `
-            <div class="mb-4">
-                <span class="badge bg-primary-subtle text-primary px-3 py-2 fs-6 mb-3">기록일: ${dream.date}</span>
+            <div class="mb-4 d-flex justify-content-between align-items-center">
+                <span class="badge bg-primary-subtle text-primary px-3 py-2 fs-6">기록일: ${dream.date}</span>
             </div>
             <div class="diary-paper p-4 p-md-5 rounded shadow-sm text-light-emphasis">
                 ${dream.content.replace(/\n/g, '<br>')}
@@ -22,27 +31,76 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         actionBtns.style.setProperty('display', 'flex', 'important');
 
-        // ✨ [핵심] 수정/삭제 버튼 이벤트 연결
-        const btnEdit = document.getElementById('btn-edit');
-        const btnDelete = document.getElementById('btn-delete');
+        function renderAnalysisButtons() {
+            if (dream.taskAResult) {
+                analysisBtnsContainer.innerHTML = `
+                    <button id="btn-taskA" class="btn btn-primary-custom shadow-sm">✨ 간단 해몽 결과 보기</button>
+                    <button class="btn btn-outline-info shadow-sm" onclick="location.href='analysis-d.html?dreamId=${dreamId}'">🔍 심층 해석 분석하기</button>
+                `;
+            } else {
+                analysisBtnsContainer.innerHTML = `
+                    <button id="btn-taskA" class="btn btn-outline-primary shadow-sm">✨ 간단 해몽 분석하기</button>
+                    <button class="btn btn-outline-info shadow-sm" onclick="location.href='analysis-d.html?dreamId=${dreamId}'">🔍 심층 해석 분석하기</button>
+                `;
+            }
+            document.getElementById('btn-taskA').addEventListener('click', handleTaskAClick);
+        }
 
-        // [삭제 로직]
-        btnDelete.addEventListener('click', () => {
-            if (confirm("정말 이 꿈일기를 삭제하시겠습니까?\n(삭제 후 복구할 수 없습니다)")) {
-                // 현재 일기(dreamId)와 아이디가 '다른' 일기들만 남겨서 새로운 배열 만듦
-                dreamList = dreamList.filter(d => d.id !== dreamId);
+        renderAnalysisButtons();
 
-                // 로컬 스토리지에 덮어쓰기
+        // 결과 UI에 데이터 뿌리기 함수
+        function populateResultUI(resultData) {
+            keywordBox.innerHTML = resultData.keywords.map(kw => `<span class="badge bg-primary-subtle text-primary">${kw}</span>`).join('');
+            secKeywordBox.innerHTML = resultData.secondaryKeywords.map(kw => `<span class="badge border border-secondary text-secondary">${kw}</span>`).join('');
+            terKeywordBox.innerHTML = resultData.tertiaryKeywords.map(kw => `<span class="badge border border-secondary text-secondary" style="font-size: 0.65rem;">${kw}</span>`).join('');
+            summaryBox.textContent = resultData.summary;
+        }
+
+        function handleTaskAClick() {
+            taskAModal.show();
+
+            if (dream.taskAResult) {
+                loadingUI.classList.add('d-none');
+                resultUI.classList.remove('d-none');
+                populateResultUI(dream.taskAResult);
+                return;
+            }
+
+            loadingUI.classList.remove('d-none');
+            resultUI.classList.add('d-none');
+
+            setTimeout(() => {
+                // ✨ 가상 API 결과에 파생 키워드 추가
+                const mockResult = {
+                    keywords: ['하늘', '비행', '자유', '해방감'],
+                    secondaryKeywords: ['구름', '시원한 바람', '새'],
+                    tertiaryKeywords: ['파란색', '높은 곳', '빠른 속도'],
+                    summary: '현재 억눌린 상황이나 스트레스에서 벗어나 자유를 갈망하고 있는 심리가 강하게 반영된 꿈입니다. 새로운 도전을 하기에 좋은 심리 상태입니다.'
+                };
+
+                dream.taskAResult = mockResult;
+                const dreamIndex = dreamList.findIndex(d => d.id === dreamId);
+                dreamList[dreamIndex] = dream;
                 localStorage.setItem('dreamList', JSON.stringify(dreamList));
 
+                loadingUI.classList.add('d-none');
+                resultUI.classList.remove('d-none');
+                populateResultUI(mockResult);
+
+                renderAnalysisButtons();
+            }, 3000);
+        }
+
+        document.getElementById('btn-delete').addEventListener('click', () => {
+            if (confirm("정말 이 꿈일기를 삭제하시겠습니까?\n(분석 결과도 함께 삭제됩니다)")) {
+                dreamList = dreamList.filter(d => d.id !== dreamId);
+                localStorage.setItem('dreamList', JSON.stringify(dreamList));
                 alert("삭제가 완료되었습니다.");
-                location.href = 'diary-list.html'; // 삭제 후 목록 페이지로 강제 이동
+                location.href = 'diary-list.html';
             }
         });
 
-        // [수정 로직]
-        btnEdit.addEventListener('click', () => {
-            // 작성 폼 페이지로 이동하되, 주소창에 '수정할 일기의 번호'를 꼬리표로 달고 감
+        document.getElementById('btn-edit').addEventListener('click', () => {
             location.href = `diary-form.html?editId=${dreamId}`;
         });
 

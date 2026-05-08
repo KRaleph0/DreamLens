@@ -1,4 +1,4 @@
-// frontend/js/diary.js
+// frontend/js/diary-form.js
 
 document.addEventListener('DOMContentLoaded', () => {
     const dateInput = document.getElementById('diary-date');
@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveStatus = document.getElementById('save-status');
     const diaryForm = document.getElementById('diary-form');
 
-    // ✨ [추가] 주소창에서 수정할 일기의 ID 확인 (?editId=123)
+    // 주소창에서 수정할 일기의 ID 확인 (?editId=123)
     const urlParams = new URLSearchParams(window.location.search);
     const editId = urlParams.get('editId') ? parseInt(urlParams.get('editId')) : null;
 
@@ -33,9 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
     } else {
-        // [새 글 작성 모드 로직] (기존과 동일)
-        const today = new Date().toISOString().split('T')[0];
-        dateInput.value = today;
+        // [새 글 작성 모드 로직]
+        // 오늘 날짜로 폼 초기화 (한국 시간 기준)
+        const today = new Date();
+        const kstDate = new Date(today.getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0];
+        dateInput.value = kstDate;
 
         // 미저장 draft 복원 (새 글 작성일 때만 작동)
         const savedDraft = localStorage.getItem('dream_draft_content');
@@ -57,12 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
         charCount.classList.toggle('text-danger', length < 20);
     });
 
-    // 4. 30초마다 자동 임시 저장 (수정 모드일 때도 백업 용도로 작동)
+    // 4. 30초마다 자동 임시 저장
     setInterval(() => {
         const currentContent = contentInput.value;
         if (currentContent.length > 5) {
             saveStatus.textContent = "임시 저장 중...";
-            // 팁: 수정 모드일 때는 다른 키워드로 저장하여 원본을 지키는 것도 좋습니다만, 지금은 심플하게 덮어씁니다.
             localStorage.setItem('dream_draft_content', currentContent);
             localStorage.setItem('dream_draft_date', dateInput.value);
 
@@ -89,16 +90,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isEditMode) {
             // [수정 완료 처리]
-            // 기존 배열에서 id가 일치하는 항목을 찾아서 내용만 업데이트
             const targetIndex = dreamList.findIndex(d => d.id === editId);
             if (targetIndex !== -1) {
                 dreamList[targetIndex].date = date;
                 dreamList[targetIndex].content = content;
-                // updated_at 등을 추가해도 좋습니다.
+
+                // ✨ 내용이 바뀌었으므로 기존 AI 분석 결과를 삭제하여 재분석 유도
+                delete dreamList[targetIndex].taskAResult;
             }
             localStorage.setItem('dreamList', JSON.stringify(dreamList));
-            alert("수정되었습니다.");
-            location.href = `diary-detail.html?id=${editId}`; // 수정한 일기 상세로 돌아가기
+
+            alert("수정되었습니다. (변경사항이 있어 재분석이 필요합니다)");
+            location.href = `diary-detail.html?id=${editId}`; // 상세 페이지로 돌아가기
 
         } else {
             // [새 글 저장 처리]
@@ -110,8 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             dreamList.unshift(newDream);
             localStorage.setItem('dreamList', JSON.stringify(dreamList));
+
             alert("꿈일기가 성공적으로 기록되었습니다! 🌙");
-            location.href = '../index.html';
+            location.href = 'diary-list.html'; // 저장 후 목록으로 가기
         }
 
         // 임시 저장 찌꺼기 삭제

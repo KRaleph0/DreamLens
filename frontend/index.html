@@ -11,6 +11,17 @@
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <link rel="stylesheet" href="css/style.css">
 
+    <style>
+        /* 추가된 호버 효과 */
+        .hover-glow-warning {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .hover-glow-warning:hover {
+            border-color: #ffc107 !important;
+            background-color: #2b2f36 !important;
+        }
+    </style>
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -38,8 +49,7 @@
         <section class="text-center mb-5">
             <h1 class="fw-bold mb-3">당신의 무의식을 탐험하세요</h1>
             <p class="text-secondary mb-4">오늘 꾸었던 꿈이나 기억에 남는 실생활 경험을 기록하고 분석해보세요.</p>
-        
-            <!-- ✨ 버튼 2개 나란히 배치 (색상 대비) -->
+
             <div class="d-flex justify-content-center gap-3">
                 <button class="btn btn-primary-custom btn-lg rounded-pill px-4 shadow"
                     onclick="location.href='pages/diary-form.html'">
@@ -70,43 +80,47 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <!-- ✨ 제목과 색상(text-warning) 변경 -->
                 <div class="card h-100 p-3 shadow-sm hover-lift" style="cursor: pointer; transition: transform 0.2s;"
-                    onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'"
-                    onclick="location.href='pages/experience.html'">
+                    onmouseover="this.style.transform='translateY(-5px)'"
+                    onmouseout="this.style.transform='translateY(0)'"
+                    onclick="location.href='pages/period-analysis.html'">
                     <div class="card-body text-center">
-                        <h4 class="card-title text-warning mb-3">🔍 경험 기록 목록</h4>
-                        <p class="card-text text-secondary">나의 실생활 경험을 미리 기록해 두고, 꿈과 결합하여 진짜 의미를 깊게 파헤쳐보세요.</p>
+                        <h4 class="card-title text-primary-custom mb-3">📊 기간별 분석</h4>
+                        <p class="card-text text-secondary">선택한 기간 동안의 꿈 패턴과 통계를 한눈에 확인하세요.</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="row g-5">
-            <div class="col-md-6">
-                <!-- ✨ 전체보기 버튼이 추가된 헤더 영역 -->
+        <section class="row g-4">
+            <div class="col-md-4">
                 <div class="d-flex justify-content-between align-items-end border-bottom border-primary pb-2 mb-3">
                     <h5 class="mb-0 text-primary-custom">최근 꿈일기</h5>
                     <a href="pages/diary-list.html" class="text-decoration-none text-secondary small hover-primary">전체보기
                         &gt;</a>
                 </div>
-
-                <!-- JS에서 카드가 렌더링 될 컨테이너 -->
                 <div id="recent-dreams-list">
                     <div class="text-center py-4 text-secondary small">로딩 중...</div>
                 </div>
             </div>
 
-            <div class="col-md-6">
-                <!-- 분석 결과 영역도 디자인 통일감을 위해 동일하게 구조 변경 -->
+            <div class="col-md-4">
+                <div class="d-flex justify-content-between align-items-end border-bottom border-primary pb-2 mb-3">
+                    <h5 class="mb-0 text-primary-custom">최근 경험 기록</h5>
+                    <a href="pages/experience-list.html" class="text-decoration-none text-secondary small hover-primary">전체보기 &gt;</a>
+                </div>
+                <div id="recent-experience-list">
+                    <div class="text-center py-4 text-secondary small">로딩 중...</div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
                 <div class="d-flex justify-content-between align-items-end border-bottom border-primary pb-2 mb-3">
                     <h5 class="mb-0 text-primary-custom">최근 분석 결과</h5>
                     <a href="#" class="text-decoration-none text-secondary small hover-primary"
                         onclick="alert('전체 분석 결과 페이지 준비중입니다.')">전체보기 &gt;</a>
                 </div>
-
                 <div id="recent-analysis-list">
-                    <!-- 깡통 데이터 유지 (나중에 JS로 교체) -->
                     <div class="card bg-dark border-secondary mb-2 shadow-sm">
                         <div class="card-body p-3 d-flex justify-content-between align-items-center">
                             <span class="text-light-emphasis small text-truncate">[심층 해석] 하늘을 날며 도망치던 꿈</span>

@@ -1,6 +1,3 @@
--- ================================================================
--- DreamLens PostgreSQL Schema
--- ================================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 SET timezone = 'Asia/Seoul';

@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderAnalysisButtons();
 
-    function handleTaskAClick() {
+    async function handleTaskAClick() {
         taskAModal.show();
 
         if (dream.task_a_result) {

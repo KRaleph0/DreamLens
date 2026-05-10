@@ -78,20 +78,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadingUI.classList.remove('d-none');
         resultUI.classList.add('d-none');
 
-        // TODO: 실제 AI API 연동 시 이 부분 교체
-        setTimeout(() => {
-            const mockResult = {
-                keywords: ['하늘', '비행', '자유', '해방감'],
-                secondaryKeywords: ['구름', '시원한 바람', '새'],
-                tertiaryKeywords: ['파란색', '높은 곳', '빠른 속도'],
-                summary: '현재 억눌린 상황이나 스트레스에서 벗어나 자유를 갈망하고 있는 심리가 강하게 반영된 꿈입니다. 새로운 도전을 하기에 좋은 심리 상태입니다.',
-            };
-            dream.task_a_result = mockResult;
+        try {
+            const analysisRes = await apiFetch(`${API_BASE}/diary/${dreamId}/analyze`, { method: 'POST' });
+            if (!analysisRes || !analysisRes.ok) throw new Error();
+            const updated = await analysisRes.json();
+            dream.task_a_result = updated.task_a_result;
             loadingUI.classList.add('d-none');
             resultUI.classList.remove('d-none');
-            populateResultUI(mockResult);
+            populateResultUI(dream.task_a_result);
             renderAnalysisButtons();
-        }, 3000);
+        } catch {
+            loadingUI.classList.add('d-none');
+            alert('해몽 분석에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        }
     }
 
     document.getElementById('btn-delete').addEventListener('click', async () => {

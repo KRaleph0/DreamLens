@@ -7,6 +7,7 @@ from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.models.diary import Diary
 from app.schemas.diary import DiaryCreate, DiaryUpdate, DiaryResponse, DiaryListItem
+from app import runpod
 
 router = APIRouter(prefix="/diary", tags=["diary"])
 
@@ -74,6 +75,29 @@ async def update_diary(
     await db.flush()
     await db.refresh(diary)
     return diary
+
+
+@router.post("/{diary_id}/analyze", response_model=DiaryResponse)
+async def analyze_diary(
+    diary_id: int,
+    user_id: int = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Diary).where(Diary.id == diary_id, Diary.user_id == user_id)
+    )
+    diary = result.scalar_one_or_none()
+    if not diary:
+        raise HTTPException(status_code=404, detail="존재하지 않는 꿈일기입니다.")
+
+    try:
+        output = await runpod.analyze_dream(diary.content)
+        diary.task_a_result = output
+        await db.flush()
+        await db.refresh(diary)
+        return diary
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI 서버 오류: {str(e)}")
 
 
 @router.delete("/{diary_id}", status_code=204)

@@ -12,23 +12,22 @@
     <link rel="stylesheet" href="../css/style.css">
 
     <style>
-        /* 경험 선택 카드 호버 및 선택 효과 */
-        .exp-select-card {
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
+        .exp-item {
             border: 2px solid transparent;
+            transition: border-color 0.2s;
         }
+        .exp-item.checked {
+            border-color: #ffc107;
+            background-color: #1e1c17 !important;
+        }
+        .mode-buttons { display: none; }
+        .exp-item.checked .mode-buttons { display: flex; }
 
-        .exp-select-card:hover {
-            background-color: #2b2f36 !important;
-            border-color: #ffc107 !important;
-        }
+        /* 토큰 예산 바 */
+        #budget-bar { transition: width 0.3s, background-color 0.3s; }
 
-        .exp-select-card.selected {
-            background-color: #332d20 !important;
-            border-color: #ffc107 !important;
-            box-shadow: 0 0 15px rgba(255, 193, 7, 0.2);
-        }
+        /* 압축 진행 인디케이터 */
+        .compress-spinner { display: none; }
     </style>
 </head>
 
@@ -38,27 +37,50 @@
         <a class="navbar-brand fw-bold text-primary-custom" href="../index.html">🔎 Dreamlens</a>
     </nav>
 
-    <main class="container flex-grow-1 max-w-md" style="max-width: 800px;">
+    <main class="container flex-grow-1" style="max-width: 800px;">
         <div class="mb-4 d-flex align-items-center gap-2">
             <button class="btn btn-sm btn-outline-secondary rounded-circle" onclick="history.back()">←</button>
             <h2 class="fw-bold mb-0 text-info">🔍 심층 해석 준비</h2>
         </div>
 
-        <p class="text-secondary mb-4">꿈과 가장 깊게 연관되어 있다고 생각되는 실생활 경험을 하나 선택해 주세요.</p>
-
+        <!-- 분석할 꿈 -->
         <div class="mb-5">
             <h5 class="fw-bold text-primary-custom mb-3">🌙 분석할 꿈</h5>
             <div id="target-dream-container" class="card bg-dark border-primary p-3 shadow-sm">
+                <div class="text-center py-3 text-secondary small">로딩 중...</div>
             </div>
         </div>
 
-        <div class="mb-5">
-            <h5 class="fw-bold text-warning mb-3">☀️ 결합할 경험 선택</h5>
+        <!-- 경험 선택 + 모드 -->
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-warning mb-0">☀️ 결합할 경험 선택</h5>
+                <small class="text-secondary">복수 선택 가능</small>
+            </div>
             <div id="exp-selection-list" class="d-flex flex-column gap-2">
                 <div class="text-center py-4 text-secondary small">로딩 중...</div>
             </div>
         </div>
 
+        <!-- 토큰 예산 표시 (경험 선택 시 표시) -->
+        <div id="token-budget-panel" class="mb-5 p-3 bg-dark border border-secondary rounded d-none">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <small class="text-secondary fw-semibold">토큰 예산</small>
+                <small class="text-light">
+                    <span id="used-tokens">0</span>
+                    <span class="text-secondary"> / </span>
+                    <span id="total-budget-display">1500</span>
+                    <span class="text-secondary"> 토큰</span>
+                    <span id="compress-count-badge" class="badge bg-warning text-dark ms-2 d-none">자동압축 ?개</span>
+                </small>
+            </div>
+            <div class="progress" style="height: 8px;">
+                <div id="budget-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%;"></div>
+            </div>
+            <div id="budget-warning" class="text-warning small mt-1 d-none">⚠ 예산 초과 — 모드를 조정하거나 경험을 줄여주세요</div>
+        </div>
+
+        <!-- 시작 버튼 -->
         <div class="text-center mb-5 pb-5">
             <button id="btn-start-analysis" class="btn btn-info btn-lg rounded-pill px-5 fw-bold shadow disabled"
                 style="color: #111;">
@@ -67,6 +89,7 @@
         </div>
     </main>
 
+    <!-- 분석 모달 -->
     <div class="modal fade" id="taskDModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content bg-dark border-info">
@@ -77,14 +100,28 @@
                 </div>
                 <div class="modal-body p-4 p-md-5">
 
+                    <!-- 압축 중 단계 -->
+                    <div id="taskD-compressing" class="text-center py-5 d-none">
+                        <div class="spinner-border text-warning mb-4" style="width: 3rem; height: 3rem;" role="status"></div>
+                        <h5 class="text-light fw-bold">경험을 압축하고 있습니다...</h5>
+                        <p id="compress-progress-text" class="text-secondary mb-0">AI가 경험의 핵심을 요약 중입니다.</p>
+                    </div>
+
+                    <!-- 분석 중 단계 -->
                     <div id="taskD-loading" class="text-center py-5">
-                        <div class="spinner-border text-info mb-4" style="width: 3rem; height: 3rem;" role="status">
-                        </div>
+                        <div class="spinner-border text-info mb-4" style="width: 3rem; height: 3rem;" role="status"></div>
                         <h5 class="text-light fw-bold">꿈과 현실을 연결하고 있습니다...</h5>
                         <p class="text-secondary mb-0">당신의 무의식 속에 숨겨진 진짜 메시지를 해독 중입니다.</p>
                     </div>
 
+                    <!-- 결과 -->
                     <div id="taskD-result" class="d-none">
+                        <!-- 사용된 경험 요약 -->
+                        <div id="result-exp-summary" class="mb-4 p-3 bg-dark border border-secondary-subtle rounded">
+                            <small class="text-secondary fw-semibold d-block mb-2">☀️ 분석에 사용된 경험</small>
+                            <div id="result-exp-list" class="d-flex flex-column gap-1"></div>
+                        </div>
+
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <div class="p-3 bg-dark border border-primary border-opacity-50 rounded h-100">
@@ -109,17 +146,17 @@
                         </div>
 
                         <div class="text-center mt-4">
-                            <button class="btn btn-outline-info px-4" onclick="location.href='../index.html'">메인으로
-                                돌아가기</button>
+                            <button class="btn btn-outline-info px-4"
+                                onclick="location.href='../index.html'">메인으로 돌아가기</button>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/api.js"></script>
     <script src="../js/analysis-d.js"></script>
 </body>
 

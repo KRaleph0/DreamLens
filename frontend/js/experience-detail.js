@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const statusBadge = exp.status === 'pending'
         ? '<span class="badge bg-warning text-dark me-2">요약 생성 중 ⏳</span>'
+        : exp.status === 'failed'
+        ? '<span class="badge bg-danger me-2">요약 실패 ⚠️</span>'
         : '<span class="badge bg-success me-2">요약 완료</span>';
 
     container.innerHTML = `

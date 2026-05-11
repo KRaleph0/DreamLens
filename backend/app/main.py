@@ -1,15 +1,33 @@
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.database import engine, Base
+from sqlalchemy import select
+from app.database import engine, Base, AsyncSessionLocal
 from app.config import settings
 from app.routers import auth, diary, experience
+from app.models.experience import Experience
+
+
+async def _requeue_pending_experiences():
+    from app.routers.experience import _run_task_c
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(Experience.id).where(Experience.status == "pending")
+        )
+        ids = result.scalars().all()
+    for exp_id in ids:
+        asyncio.create_task(_run_task_c(exp_id))
+    if ids:
+        print(f"[startup] pending 경험 {len(ids)}건 재처리 시작: {ids}", flush=True)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     print("DB 연결 성공!")
+    await _requeue_pending_experiences()
     yield
     await engine.dispose()
 

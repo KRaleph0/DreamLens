@@ -1,7 +1,10 @@
+import logging
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db, AsyncSessionLocal
 from app.dependencies import get_current_user_id
@@ -23,12 +26,16 @@ async def _run_task_c(exp_id: int) -> None:
         if not exp:
             return
         try:
+            print(f"[Task C] exp_id={exp_id} RunPod 호출 시작", flush=True)
             output = await runpod.summarize(exp.content)
             exp.summary = output.get("summary")
             exp.status = "done"
             await db.commit()
-        except Exception:
-            pass  # 실패해도 경험 기록은 그대로 유지
+            print(f"[Task C] exp_id={exp_id} 완료", flush=True)
+        except Exception as e:
+            print(f"[Task C] exp_id={exp_id} 실패: {e}", flush=True)
+            exp.status = "failed"
+            await db.commit()
 
 
 # ── CRUD ─────────────────────────────────────────────────────────

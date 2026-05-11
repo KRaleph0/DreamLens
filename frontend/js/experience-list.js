@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0 fw-bold">${exp.title}</h5>
                         <div>
-                            ${exp.status === 'pending' ? '<span class="badge bg-warning text-dark me-1">요약 생성 중 ⏳</span>' : '<span class="badge bg-success me-1">요약 완료</span>'}
+                            ${exp.status === 'pending' ? '<span class="badge bg-warning text-dark me-1">요약 생성 중 ⏳</span>' : exp.status === 'failed' ? '<span class="badge bg-danger me-1">요약 실패 ⚠️</span>' : '<span class="badge bg-success me-1">요약 완료</span>'}
                             <span class="badge bg-secondary">${exp.time_text || ''}</span>
                         </div>
                     </div>

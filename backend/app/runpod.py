@@ -1,9 +1,9 @@
 import httpx
 from app.config import settings
 
-_ENDPOINT_C = "https://api.runpod.ai/v2/8r4mlzo7txxs5v/runsync"
-_ENDPOINT_A = "https://api.runpod.ai/v2/ub5ilhilso4u84/runsync"
-_TIMEOUT    = 120.0
+_ENDPOINT_C = "https://api.runpod.ai/v2/8r4mlzo7txxs5v/runsync?timeout=290"
+_ENDPOINT_A = "https://api.runpod.ai/v2/ub5ilhilso4u84/runsync?timeout=290"
+_TIMEOUT    = 300.0
 
 
 def _headers() -> dict:
@@ -14,7 +14,10 @@ async def _post(endpoint: str, payload: dict) -> dict:
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         res = await client.post(endpoint, headers=_headers(), json=payload)
         res.raise_for_status()
-        return res.json()["output"]
+        body = res.json()
+        if "output" not in body:
+            raise RuntimeError(f"RunPod 응답에 output 없음: status={body.get('status')}, body={body}")
+        return body["output"]
 
 
 async def analyze_dream(dream_text: str) -> dict:

@@ -1,15 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
 
-from app.database import get_db
+from app.database import get_db, AsyncSessionLocal
 from app.dependencies import get_current_user_id
 from app.models.diary import Diary
 from app.schemas.diary import DiaryCreate, DiaryUpdate, DiaryResponse, DiaryListItem
 from app import runpod
 
 router = APIRouter(prefix="/diary", tags=["diary"])
+
+_analyzing: set[int] = set()
+
+
+async def _run_task_a(diary_id: int) -> None:
+    _analyzing.add(diary_id)
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(Diary).where(Diary.id == diary_id))
+            diary = result.scalar_one_or_none()
+            if not diary:
+                return
+            print(f"[Task A] diary_id={diary_id} RunPod 호출 시작", flush=True)
+            output = await runpod.analyze_dream(diary.content)
+            diary.task_a_result = output
+            await db.commit()
+            print(f"[Task A] diary_id={diary_id} 완료", flush=True)
+    except Exception as e:
+        print(f"[Task A] diary_id={diary_id} 실패: {e}", flush=True)
+    finally:
+        _analyzing.discard(diary_id)
 
 
 @router.get("", response_model=List[DiaryListItem])
@@ -77,9 +98,10 @@ async def update_diary(
     return diary
 
 
-@router.post("/{diary_id}/analyze", response_model=DiaryResponse)
+@router.post("/{diary_id}/analyze", response_model=DiaryResponse, status_code=202)
 async def analyze_diary(
     diary_id: int,
+    background_tasks: BackgroundTasks,
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -90,14 +112,10 @@ async def analyze_diary(
     if not diary:
         raise HTTPException(status_code=404, detail="존재하지 않는 꿈일기입니다.")
 
-    try:
-        output = await runpod.analyze_dream(diary.content)
-        diary.task_a_result = output
-        await db.flush()
-        await db.refresh(diary)
-        return diary
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"AI 서버 오류: {str(e)}")
+    if not diary.task_a_result and diary_id not in _analyzing:
+        background_tasks.add_task(_run_task_a, diary_id)
+
+    return diary
 
 
 @router.delete("/{diary_id}", status_code=204)

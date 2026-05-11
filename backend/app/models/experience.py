@@ -6,7 +6,7 @@ from app.database import Base
 class Experience(Base):
     __tablename__ = "experiences"
 
-    id         = Column(BigInteger, primary_key=True, autoincrement=True)
+    id         = Column('experience_id', BigInteger, primary_key=True, autoincrement=True)
     user_id    = Column(BigInteger, nullable=False)
     title      = Column(String(200), nullable=False)
     time_value = Column(String(50))

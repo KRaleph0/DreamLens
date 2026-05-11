@@ -42,10 +42,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     actionBtns.style.setProperty('display', 'flex', 'important');
 
     function populateResultUI(resultData) {
-        keywordBox.innerHTML    = resultData.keywords.map(kw => `<span class="badge bg-primary-subtle text-primary">${kw}</span>`).join('');
-        secKeywordBox.innerHTML = resultData.secondaryKeywords.map(kw => `<span class="badge border border-secondary text-secondary">${kw}</span>`).join('');
-        terKeywordBox.innerHTML = resultData.tertiaryKeywords.map(kw => `<span class="badge border border-secondary text-secondary" style="font-size: 0.65rem;">${kw}</span>`).join('');
-        summaryBox.textContent  = resultData.summary;
+        const primary   = resultData.primary_keywords   ?? resultData.keywords            ?? [];
+        const secondary = resultData.secondary_keywords ?? resultData.secondaryKeywords   ?? [];
+        const tertiary  = resultData.tertiary_keywords  ?? resultData.tertiaryKeywords    ?? [];
+        const summary   = resultData.interpretation     ?? resultData.summary             ?? '';
+
+        keywordBox.innerHTML    = primary.map(kw => `<span class="badge bg-primary-subtle text-primary">${kw}</span>`).join('');
+        secKeywordBox.innerHTML = secondary.map(kw => `<span class="badge border border-secondary text-secondary">${kw}</span>`).join('');
+        terKeywordBox.innerHTML = tertiary.map(kw => `<span class="badge border border-secondary text-secondary" style="font-size: 0.65rem;">${kw}</span>`).join('');
+        summaryBox.textContent  = summary;
     }
 
     function renderAnalysisButtons() {
@@ -65,6 +70,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderAnalysisButtons();
 
+    let _pollTimer = null;
+    let _pollTimeout = null;
+
+    function _stopPoll() {
+        if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+        if (_pollTimeout) { clearTimeout(_pollTimeout); _pollTimeout = null; }
+    }
+
     async function handleTaskAClick() {
         taskAModal.show();
 
@@ -77,21 +90,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         loadingUI.classList.remove('d-none');
         resultUI.classList.add('d-none');
+        _stopPoll();
 
-        try {
-            const analysisRes = await apiFetch(`${API_BASE}/diary/${dreamId}/analyze`, { method: 'POST' });
-            if (!analysisRes || !analysisRes.ok) throw new Error();
-            const updated = await analysisRes.json();
-            dream.task_a_result = updated.task_a_result;
+        // 분석 시작 (즉시 202 반환 — 결과를 기다리지 않음)
+        const startRes = await apiFetch(`${API_BASE}/diary/${dreamId}/analyze`, { method: 'POST' });
+        if (!startRes || (startRes.status !== 202 && !startRes.ok)) {
             loadingUI.classList.add('d-none');
-            resultUI.classList.remove('d-none');
-            populateResultUI(dream.task_a_result);
-            renderAnalysisButtons();
-        } catch {
-            loadingUI.classList.add('d-none');
-            alert('해몽 분석에 실패했습니다. 잠시 후 다시 시도해주세요.');
+            alert('해몽 분석 요청에 실패했습니다. 잠시 후 다시 시도해주세요.');
+            return;
         }
+
+        // 5초마다 GET /diary/{id} 폴링
+        _pollTimer = setInterval(async () => {
+            const res = await apiFetch(`${API_BASE}/diary/${dreamId}`);
+            if (!res || !res.ok) return;
+            const updated = await res.json();
+            if (updated.task_a_result) {
+                _stopPoll();
+                dream.task_a_result = updated.task_a_result;
+                loadingUI.classList.add('d-none');
+                resultUI.classList.remove('d-none');
+                populateResultUI(dream.task_a_result);
+                renderAnalysisButtons();
+            }
+        }, 5000);
+
+        // 5분 후 타임아웃
+        _pollTimeout = setTimeout(() => {
+            _stopPoll();
+            if (!dream.task_a_result) {
+                loadingUI.classList.add('d-none');
+                alert('해몽 분석이 오래 걸리고 있습니다. 잠시 후 다시 시도해주세요.');
+            }
+        }, 300000);
     }
+
+    // 모달 닫으면 폴링 정지
+    document.getElementById('taskAModal').addEventListener('hidden.bs.modal', _stopPoll);
 
     document.getElementById('btn-delete').addEventListener('click', async () => {
         if (!confirm('정말 이 꿈일기를 삭제하시겠습니까?\n(분석 결과도 함께 삭제됩니다)')) return;

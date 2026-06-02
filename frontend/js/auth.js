@@ -1,6 +1,8 @@
 // frontend/js/auth.js
 
-const API_BASE = '/api';
+const API_BASE = (['localhost', '127.0.0.1'].includes(location.hostname) && location.port && location.port !== '80')
+    ? 'http://localhost:8000'
+    : '/api';
 
 // ── 공통 유틸 ───────────────────────────────────────────────
 function showError(message) {

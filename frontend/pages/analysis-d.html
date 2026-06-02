@@ -14,24 +14,45 @@
     <style>
         .exp-item {
             border: 2px solid transparent;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background-color 0.2s;
         }
+
         .exp-item.checked {
             border-color: #ffc107;
             background-color: #1e1c17 !important;
         }
-        .mode-buttons { display: none; }
-        .exp-item.checked .mode-buttons { display: flex; }
+
+        .mode-buttons {
+            display: none;
+        }
+
+        .exp-item.checked .mode-buttons {
+            display: flex;
+        }
 
         /* 토큰 예산 바 */
-        #budget-bar { transition: width 0.3s, background-color 0.3s; }
+        #budget-bar {
+            transition: width 0.3s, background-color 0.3s;
+        }
 
         /* 압축 진행 인디케이터 */
-        .compress-spinner { display: none; }
+        .compress-spinner {
+            display: none;
+        }
+
+        /* 원문 보기 버튼 호버 효과 */
+        .view-exp-btn {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .view-exp-btn:hover {
+            opacity: 0.7;
+        }
     </style>
 </head>
 
-<body class="d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100 pb-5">
 
     <nav class="navbar border-bottom border-secondary-subtle px-4 py-3 mb-4">
         <a class="navbar-brand fw-bold text-primary-custom" href="../index.html">🔎 Dreamlens</a>
@@ -43,7 +64,6 @@
             <h2 class="fw-bold mb-0 text-info">🔍 심층 해석 준비</h2>
         </div>
 
-        <!-- 분석할 꿈 -->
         <div class="mb-5">
             <h5 class="fw-bold text-primary-custom mb-3">🌙 분석할 꿈</h5>
             <div id="target-dream-container" class="card bg-dark border-primary p-3 shadow-sm">
@@ -51,23 +71,28 @@
             </div>
         </div>
 
-        <!-- 경험 선택 + 모드 -->
         <div class="mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-warning mb-0">☀️ 결합할 경험 선택</h5>
-                <small class="text-secondary">복수 선택 가능</small>
+            <div class="d-flex justify-content-between align-items-end mb-3 flex-wrap gap-2">
+                <div>
+                    <h5 class="fw-bold text-warning mb-1">☀️ 결합할 경험 선택</h5>
+                    <small class="text-secondary">복수 선택 가능 / 예산 초과 시 자동압축 활용</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="date" id="exp-date-filter"
+                        class="form-control form-control-sm bg-dark text-light border-secondary shadow-sm" style="width: auto;">
+                    <button class="btn btn-sm btn-outline-secondary" id="btn-clear-filter">초기화</button>
+                </div>
             </div>
             <div id="exp-selection-list" class="d-flex flex-column gap-2">
                 <div class="text-center py-4 text-secondary small">로딩 중...</div>
             </div>
         </div>
 
-        <!-- 토큰 예산 표시 (경험 선택 시 표시) -->
-        <div id="token-budget-panel" class="mb-5 p-3 bg-dark border border-secondary rounded d-none">
+        <div id="token-budget-panel" class="mb-5 p-3 bg-dark border border-secondary rounded">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <small class="text-secondary fw-semibold">토큰 예산</small>
+                <small class="text-secondary fw-semibold">토큰 예산 현황</small>
                 <small class="text-light">
-                    <span id="used-tokens">0</span>
+                    <span id="used-tokens" class="fw-bold fs-5 text-warning">0</span>
                     <span class="text-secondary"> / </span>
                     <span id="total-budget-display">1500</span>
                     <span class="text-secondary"> 토큰</span>
@@ -77,19 +102,45 @@
             <div class="progress" style="height: 8px;">
                 <div id="budget-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%;"></div>
             </div>
-            <div id="budget-warning" class="text-warning small mt-1 d-none">⚠ 예산 초과 — 모드를 조정하거나 경험을 줄여주세요</div>
         </div>
 
-        <!-- 시작 버튼 -->
         <div class="text-center mb-5 pb-5">
-            <button id="btn-start-analysis" class="btn btn-info btn-lg rounded-pill px-5 fw-bold shadow disabled"
+            <button id="btn-start-analysis" class="btn btn-info btn-lg rounded-pill px-5 fw-bold shadow"
                 style="color: #111;">
                 선택한 경험과 결합하여 심층 해석하기
             </button>
         </div>
     </main>
 
-    <!-- 분석 모달 -->
+    <div class="modal fade" id="expDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content bg-dark border-secondary">
+                <div class="modal-header border-secondary-subtle">
+                    <h5 class="modal-title text-warning fw-bold" id="expDetailTitle">경험 원문</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-light-emphasis" id="expDetailContent" style="line-height: 1.6;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="noExpConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border-warning">
+                <div class="modal-body p-4 text-center">
+                    <h5 class="text-warning fw-bold mb-3">⚠️ 경험을 선택하지 않았습니다</h5>
+                    <p class="text-light-emphasis">선택한 경험 없이 꿈만으로 심층 해석을 진행하시겠습니까?</p>
+                    <div class="d-flex justify-content-center gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">취소</button>
+                        <button type="button" id="btn-proceed-no-exp" class="btn btn-warning px-4 text-dark fw-bold">네,
+                            진행합니다</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="taskDModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content bg-dark border-info">
@@ -100,23 +151,21 @@
                 </div>
                 <div class="modal-body p-4 p-md-5">
 
-                    <!-- 압축 중 단계 -->
                     <div id="taskD-compressing" class="text-center py-5 d-none">
-                        <div class="spinner-border text-warning mb-4" style="width: 3rem; height: 3rem;" role="status"></div>
+                        <div class="spinner-border text-warning mb-4" style="width: 3rem; height: 3rem;" role="status">
+                        </div>
                         <h5 class="text-light fw-bold">경험을 압축하고 있습니다...</h5>
                         <p id="compress-progress-text" class="text-secondary mb-0">AI가 경험의 핵심을 요약 중입니다.</p>
                     </div>
 
-                    <!-- 분석 중 단계 -->
                     <div id="taskD-loading" class="text-center py-5">
-                        <div class="spinner-border text-info mb-4" style="width: 3rem; height: 3rem;" role="status"></div>
+                        <div class="spinner-border text-info mb-4" style="width: 3rem; height: 3rem;" role="status">
+                        </div>
                         <h5 class="text-light fw-bold">꿈과 현실을 연결하고 있습니다...</h5>
                         <p class="text-secondary mb-0">당신의 무의식 속에 숨겨진 진짜 메시지를 해독 중입니다.</p>
                     </div>
 
-                    <!-- 결과 -->
                     <div id="taskD-result" class="d-none">
-                        <!-- 사용된 경험 요약 -->
                         <div id="result-exp-summary" class="mb-4 p-3 bg-dark border border-secondary-subtle rounded">
                             <small class="text-secondary fw-semibold d-block mb-2">☀️ 분석에 사용된 경험</small>
                             <div id="result-exp-list" class="d-flex flex-column gap-1"></div>
@@ -145,9 +194,10 @@
                             </div>
                         </div>
 
+                        <div class="text-center mt-4 text-secondary small">본 해석은 AI 기반이며, 전문적 심리 상담을 대체하지 않습니다.</div>
                         <div class="text-center mt-4">
-                            <button class="btn btn-outline-info px-4"
-                                onclick="location.href='../index.html'">메인으로 돌아가기</button>
+                            <button class="btn btn-outline-info px-4" onclick="location.href='../index.html'">메인으로
+                                돌아가기</button>
                         </div>
                     </div>
                 </div>

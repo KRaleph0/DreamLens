@@ -18,9 +18,9 @@
     </nav>
 
     <main class="container flex-grow-1" style="max-width: 600px;">
-        <h2 class="fw-bold mb-4">내 정보 관리</h2>
+        <h2 id="profile-page-title" class="fw-bold mb-4">👤 내 정보 관리</h2>
 
-        <div class="card p-4 border-secondary shadow-sm">
+        <div class="card p-4 border-secondary shadow-sm" style="transform: none !important;">
             <div class="text-center mb-4">
                 <div class="position-relative d-inline-block">
                     <div id="avatar-container"
@@ -28,27 +28,27 @@
                         style="width: 120px; height: 120px; font-size: 3rem; font-weight: bold;">
                     </div>
 
-                    <label for="pfp-input"
-                        class="position-absolute bottom-0 end-0 bg-secondary text-white rounded-circle p-2 shadow"
+                    <label for="pfp-input" id="pfp-label"
+                        class="position-absolute bottom-0 end-0 bg-secondary text-white rounded-circle p-2 shadow d-none"
                         style="cursor: pointer; line-height: 1;">
                         📷
                     </label>
                     <input type="file" id="pfp-input" accept="image/*" class="d-none">
                 </div>
-                <p class="text-secondary small mt-2">프로필 사진을 변경하려면 클릭하세요</p>
+                <p id="pfp-help-text" class="text-secondary small mt-2 d-none">프로필 사진을 변경하려면 클릭하세요</p>
             </div>
 
             <form id="profile-form">
                 <div class="mb-4">
                     <label for="user-nickname" class="form-label text-secondary small">닉네임</label>
-                    <input type="text" class="form-control bg-dark text-light border-secondary" id="user-nickname"
-                        placeholder="닉네임을 입력하세요" required>
+                    <input type="text" class="form-control bg-dark text-light border-secondary py-2" id="user-nickname"
+                        placeholder="닉네임을 입력하세요" required disabled>
                 </div>
 
                 <div class="row mb-4">
                     <div class="col-6">
                         <label for="user-gender" class="form-label text-secondary small">성별</label>
-                        <select class="form-select bg-dark text-light border-secondary" id="user-gender">
+                        <select class="form-select bg-dark text-light border-secondary py-2" id="user-gender" disabled>
                             <option value="unselected">선택 안함</option>
                             <option value="M">남성</option>
                             <option value="F">여성</option>
@@ -57,7 +57,7 @@
                     </div>
                     <div class="col-6">
                         <label for="user-age" class="form-label text-secondary small">연령대</label>
-                        <select class="form-select bg-dark text-light border-secondary" id="user-age">
+                        <select class="form-select bg-dark text-light border-secondary py-2" id="user-age" disabled>
                             <option value="unselected">선택 안함</option>
                             <option value="10">10대</option>
                             <option value="20">20대</option>
@@ -67,15 +67,22 @@
                     </div>
                 </div>
 
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary-custom fw-bold py-2">설정 저장하기</button>
+                <div id="view-actions" class="d-grid gap-2">
+                    <button type="button" id="btn-enter-edit" class="btn btn-primary-custom fw-bold py-2">프로필
+                        수정하기</button>
                     <button type="button" class="btn btn-outline-secondary"
-                        onclick="location.href='../index.html'">취소</button>
+                        onclick="location.href='../index.html'">메인으로</button>
+                </div>
+
+                <div id="edit-actions" class="d-grid gap-2 d-none">
+                    <button type="submit" class="btn btn-success fw-bold py-2">변경사항 저장하기</button>
+                    <button type="button" id="btn-cancel-edit" class="btn btn-outline-secondary">수정 취소</button>
                 </div>
             </form>
         </div>
     </main>
 
+    <script src="../js/api.js"></script>
     <script src="../js/profile.js"></script>
 </body>
 

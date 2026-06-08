@@ -14,9 +14,10 @@ class Settings(BaseSettings):
 
     runpod_api_key: str = ""
     allowed_origins: str = "https://www.dreamlens.cc"
+    recaptcha_secret_key: str = ""
 
     class Config:
-        env_file = "/home/aleph/projects/dreamlens/.env"
+        env_file = ("/home/aleph/projects/dreamlens/.env", "../../.env", "../.env", ".env")
         env_file_encoding = "utf-8"
         extra = "ignore"
 

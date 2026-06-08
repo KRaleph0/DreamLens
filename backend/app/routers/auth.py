@@ -1,11 +1,13 @@
+import hashlib
+import secrets
+
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Response, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
-import hashlib
-import secrets
 
 from app.database import get_db
 from app.models.user import User, RefreshToken
@@ -15,6 +17,24 @@ from app.config import settings
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+_RECAPTCHA_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify"
+_RECAPTCHA_THRESHOLD  = 0.5
+
+
+async def _verify_recaptcha(token: str) -> None:
+    """점수가 threshold 미만이거나 검증 실패 시 예외."""
+    secret = settings.recaptcha_secret_key
+    if not secret:
+        return  # 키 미설정 시 검증 건너뜀 (로컬 개발)
+    async with httpx.AsyncClient() as client:
+        res = await client.post(
+            _RECAPTCHA_VERIFY_URL,
+            data={"secret": secret, "response": token},
+        )
+    result = res.json()
+    if not result.get("success") or result.get("score", 0) < _RECAPTCHA_THRESHOLD:
+        raise HTTPException(status_code=400, detail="reCAPTCHA 검증에 실패했습니다. 다시 시도해주세요.")
 
 # ── 유틸 함수 ──────────────────────────────────────────────────
 def hash_password(password: str) -> str:
@@ -60,6 +80,9 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
 # ── 로그인 ─────────────────────────────────────────────────────
 @router.post("/login", response_model=TokenResponse)
 async def login(body: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
+    if body.recaptcha_token:
+        await _verify_recaptcha(body.recaptcha_token)
+
     # 사용자 조회
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()

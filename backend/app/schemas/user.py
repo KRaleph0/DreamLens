@@ -14,6 +14,7 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
     auto_login: bool = True
+    recaptcha_token: Optional[str] = None
 
 # ── 응답 ──────────────────────────────────────────
 class UserResponse(BaseModel):

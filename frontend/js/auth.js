@@ -1,6 +1,8 @@
 // frontend/js/auth.js
 
-const API_BASE = '/api';
+const API_BASE = (['localhost', '127.0.0.1'].includes(location.hostname) && location.port && location.port !== '80')
+    ? 'http://localhost:8000'
+    : '/api';
 
 // ── 공통 유틸 ───────────────────────────────────────────────
 function showError(message) {
@@ -40,7 +42,12 @@ async function apiPost(path, body) {
         body: JSON.stringify(body),
     });
     const data = await res.json();
-    if (!res.ok) { throw new Error(data.detail || '오류가 발생했습니다.'); }
+    if (!res.ok) {
+        const detail = Array.isArray(data.detail)
+            ? data.detail.map(e => e.msg).join(', ')
+            : (data.detail || '오류가 발생했습니다.');
+        throw new Error(detail);
+    }
     return data;
 }
 
@@ -83,7 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
             setLoading(btn, true);
             try {
                 const autoLogin = document.getElementById('auto-login')?.checked ?? true;
-                const data = await apiPost('/auth/login', { email, password, auto_login: autoLogin });
+                const recaptcha_token = await grecaptcha.execute('6LeI_BItAAAAALbiWsRbwRKQNbQ_3qHriHdvlUkW', { action: 'login' });
+                const data = await apiPost('/auth/login', { email, password, auto_login: autoLogin, recaptcha_token });
                 saveAccessToken(data.access_token);
                 await fetchAndCacheProfile(data.access_token);
 
@@ -115,7 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setLoading(btn, true);
             try {
-                await apiPost('/auth/register', { email, password, nickname, gender, age_group: age });
+                const recaptcha_token = await grecaptcha.execute('6LeI_BItAAAAALbiWsRbwRKQNbQ_3qHriHdvlUkW', { action: 'register' });
+                await apiPost('/auth/register', { email, password, nickname, gender, age_group: age, recaptcha_token });
 
                 // ✨ [변경] 회원가입 시점에 전체 프로필 객체를 초기화해서 저장
                 const initialProfile = {

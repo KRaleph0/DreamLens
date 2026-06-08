@@ -294,6 +294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         taskDModal.show();
 
+        // 1단계: compress 모드 경험 압축
         if (compressItems.length > 0) {
             document.getElementById('taskD-compressing').classList.remove('d-none');
             document.getElementById('taskD-loading').classList.add('d-none');
@@ -321,44 +322,42 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             document.getElementById('taskD-compressing').classList.add('d-none');
-            document.getElementById('taskD-loading').classList.remove('d-none');
         }
 
-        await new Promise(r => setTimeout(r, 2500));
+        // 2단계: Task D AI 분석 요청
+        document.getElementById('taskD-loading').classList.remove('d-none');
 
-        document.getElementById('taskD-loading').classList.add('d-none');
-        document.getElementById('taskD-result').classList.remove('d-none');
+        const experiencePayload = selections.map(s => {
+            let text;
+            if (s.mode === 'original') text = s.exp.content;
+            else if (s.mode === 'summary') text = s.exp.summary || s.exp.content;
+            else text = s.compressedText || s.exp.content;
 
-        const modeLabel = { original: '원문', summary: '한줄요약', compress: '자동압축' };
+            return {
+                exp_id: s.id,
+                title: s.exp.title,
+                text,
+                mode: s.mode,
+                time_text: s.exp.time_text || '',
+            };
+        });
 
-        if (selections.length > 0) {
-            document.getElementById('result-exp-summary').classList.remove('d-none');
-            document.getElementById('result-exp-list').innerHTML = selections.map(s => {
-                let tokInfo = '';
-                if (s.mode === 'compress' && s.compressedTokens) {
-                    tokInfo = `→ ${s.compressedTokens}t 압축`;
-                }
-                return `<span class="text-light-emphasis small">
-                    <span class="badge bg-secondary me-1">${modeLabel[s.mode]}</span>
-                    ${s.exp.title} ${tokInfo}
-                </span>`;
-            }).join('');
+        try {
+            const res = await apiFetch(`${API_BASE}/analysis/deep`, {
+                method: 'POST',
+                body: JSON.stringify({ diary_id: dreamId, experiences: experiencePayload }),
+            });
 
-            const expTitles = selections.map(s => s.exp.title).join(', ');
-            document.getElementById('result-dream-kw').innerHTML = `
-                <span class="badge bg-secondary">자아 성찰</span>
-                <span class="badge bg-secondary">불안감</span>
-            `;
-            document.getElementById('result-exp-link').textContent =
-                `선택하신 경험(${expTitles})에서 느꼈던 감정이 꿈의 상징들과 연결되어 나타났습니다.`;
-            document.getElementById('result-summary').innerHTML = `
-                이 꿈은 과거의 경험(<strong>${expTitles}</strong>)에서 비롯된 미해결 과제를 무의식이 처리하고 있는 과정입니다.
-            `;
-        } else {
-            document.getElementById('result-exp-summary').classList.add('d-none');
-            document.getElementById('result-dream-kw').innerHTML = `<span class="badge bg-secondary">무의식 탐구</span>`;
-            document.getElementById('result-exp-link').textContent = `결합된 현실 경험 없이 꿈 자체의 원형적 상징에 집중하여 분석했습니다.`;
-            document.getElementById('result-summary').innerHTML = `이 꿈은 외부의 영향보다는 내면의 깊은 곳에서 올라오는 순수한 감정 상태를 반영하고 있습니다.`;
+            if (!res || !res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'API 오류');
+            }
+
+            const { id: newId } = await res.json();
+            location.href = `analysis-result.html?id=${newId}`;
+        } catch (err) {
+            document.getElementById('taskD-loading').classList.add('d-none');
+            alert(`AI 분석 중 오류가 발생했습니다.\n${err.message}`);
         }
     }
     // ── 날짜 필터 로직 (PB-040) ─────────────────────────────────────────────

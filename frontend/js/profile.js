@@ -24,32 +24,65 @@ document.addEventListener('DOMContentLoaded', () => {
     let originalData = {};     // [취소] 버튼 클릭 시 복구할 원본 데이터 보관소
 
     // ── 1. 초기 데이터 로드 및 조회 모드 세팅 ──────────────────────────────
-    function loadInitialProfile() {
+    async function loadInitialProfile() {
+        // 서버 프로필 로드 시도
+        try {
+            const res = await apiFetch(`${API_BASE}/user/profile`);
+            if (res && res.ok) {
+                const profile = await res.json();
+
+                nicknameInput.value = profile.nickname || '사용자';
+                genderSelect.value = profile.gender || 'unselected';
+                ageSelect.value = profile.age_group || 'unselected';
+
+                // localStorage도 동기화 (메인 대시보드 아바타용)
+                localStorage.setItem('userNickname', profile.nickname || '사용자');
+
+                if (profile.profile_image) {
+                    const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                    savedProfile.profileImage = profile.profile_image;
+                    localStorage.setItem('userProfile', JSON.stringify(savedProfile));
+
+                    avatarContainer.innerHTML = `<img src="${profile.profile_image}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    avatarContainer.classList.remove('bg-primary');
+                } else {
+                    const initial = (profile.nickname || '사').charAt(0).toUpperCase();
+                    avatarContainer.innerHTML = initial;
+                    avatarContainer.classList.add('bg-primary');
+                }
+
+                originalData = {
+                    nickname: nicknameInput.value,
+                    gender: genderSelect.value,
+                    age: ageSelect.value,
+                    profileImage: profile.profile_image || null,
+                };
+                return;
+            }
+        } catch (_) { /* fallback to localStorage */ }
+
+        // localStorage fallback
         const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
         const currentNickname = localStorage.getItem('userNickname') || '사용자';
 
-        // 폼 필드에 기존 정보 안전하게 채워넣기 (조건문 분리하여 데이터 누수 방지)
         nicknameInput.value = currentNickname;
         genderSelect.value = savedProfile.gender || 'unselected';
         ageSelect.value = savedProfile.age || 'unselected';
 
-        // 📸 프로필 아바타 렌더링 (메인 화면 로직과 완벽 동기화)
         if (savedProfile.profileImage) {
             avatarContainer.innerHTML = `<img src="${savedProfile.profileImage}" style="width: 100%; height: 100%; object-fit: cover;">`;
             avatarContainer.classList.remove('bg-primary');
         } else {
-            // 저장된 이미지가 없으면 이름 첫 글자 이니셜 노출
             const initial = currentNickname.charAt(0).toUpperCase();
             avatarContainer.innerHTML = initial;
             avatarContainer.classList.add('bg-primary');
         }
 
-        // 현재 렌더링된 값을 원본 데이터로 백업 (취소 시 복구용)
         originalData = {
             nickname: nicknameInput.value,
             gender: genderSelect.value,
             age: ageSelect.value,
-            profileImage: savedProfile.profileImage || null
+            profileImage: savedProfile.profileImage || null,
         };
     }
 
@@ -124,50 +157,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── 5. 변경사항 최종 저장 로직 ─────────────────────────────────────────
-    profileForm.addEventListener('submit', (e) => {
+    profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const nickname = nicknameInput.value;
         const gender = genderSelect.value;
-        const age = ageSelect.value;
+        const age_group = ageSelect.value;
+        const profile_image = tempImageBase64 || originalData.profileImage || null;
 
-        // ─────────────────────────────────────────────────────────────────
-        // 🛠️ [병창님(백엔드) 연동 시 가이드]
-        //    실제 서버 통신 시에는 FormData를 생성하여 이미지 파일(selectedFile)과 
-        //    텍스트 데이터를 함께 멀티파트(Multipart) 전송하시면 됩니다!
-        // ─────────────────────────────────────────────────────────────────
-        /*
-        const formData = new FormData();
-        formData.append('nickname', nickname);
-        formData.append('gender', gender);
-        formData.append('age', age);
-        if (selectedFile) {
-            formData.append('profile_image', selectedFile);
+        try {
+            const res = await apiFetch(`${API_BASE}/user/profile`, {
+                method: 'PUT',
+                body: JSON.stringify({ nickname, gender, age_group, profile_image }),
+            });
+
+            if (!res || !res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || '저장 실패');
+            }
+        } catch (err) {
+            alert(`프로필 저장 중 오류가 발생했습니다.\n${err.message}`);
+            return;
         }
-        
-        // 공통 apiFetch를 이용한 서버 전송 예시
-        const res = await apiFetch(`${API_BASE}/user/profile`, {
-            method: 'PUT',
-            body: formData // Content-Type은 브라우저가 자동으로 세팅하도록 비워둠
-        });
-        */
 
-        // 로컬 스토리지 텍스트 및 이미지 데이터 반영
+        // localStorage도 동기화 (메인 대시보드 아바타용)
         const profileData = {
-            nickname: nickname,
-            gender: gender,
-            age: age,
-            // 새 이미지가 있으면 변경하고, 없으면 기존 이미지를 유지합니다.
-            profileImage: tempImageBase64 || originalData.profileImage,
-            updatedAt: new Date().toISOString()
+            nickname,
+            gender,
+            age: age_group,
+            profileImage: profile_image,
+            updatedAt: new Date().toISOString(),
         };
-
         localStorage.setItem('userProfile', JSON.stringify(profileData));
         localStorage.setItem('userNickname', nickname);
 
-        alert("🎉 프로필 정보가 성공적으로 변경되었습니다!");
-
-        // 저장 성공 후 메인 대시보드로 기분 좋게 리다이렉트
+        alert('프로필 정보가 성공적으로 변경되었습니다!');
         location.href = '../index.html';
     });
 

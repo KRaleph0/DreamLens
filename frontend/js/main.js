@@ -102,32 +102,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // ── 4. 🛠️ 최근 AI 분석 결과 목록 불러오기 (Mock Data 및 백엔드 연동 가이드 완비) ──
+    // ── 4. 최근 AI 분석 결과 목록 불러오기 (최신순 3개) ──────────────────────
     const analysisListEl = document.getElementById('recent-analysis-list');
     if (analysisListEl) {
-
-        // ─────────────────────────────────────────────────────────────────────────
-        // 💡 백엔드 연동 가이드: API 배포 시 데이터 스키마(포맷)는 아래 구조와 꼭 맞춰주세요!
-        //    - type: 'deep'(심층 해석 리포트) 또는 'simple'(간단 해몽 리포트)
-        // ─────────────────────────────────────────────────────────────────────────
-        const mockAnalysisList = [
-            { id: 1, type: 'deep', dream_title: '하늘을 날며 무언가로부터 필사적으로 도망치던 꿈', created_at: '2026-03-22T10:30:00.000Z' },
-            { id: 2, type: 'simple', dream_title: '불이 다 꺼진 학교에서 끝없이 이어지는 복도를 걷는 꿈', created_at: '2026-03-20T14:15:00.000Z' },
-            { id: 3, type: 'deep', dream_title: '중요한 시험을 보는데 연필이 통째로 으스러져 움직이지 않는 꿈', created_at: '2026-02-15T09:00:00.000Z' }
-        ];
-
         try {
-            // 🛠️ 백엔드 실서버 배포 시 아래 5줄 주석을 해제하고 바로 활성화하시면 됩니다!
-            /*
             const res = await apiFetch(`${API_BASE}/analysis`);
             if (!res || !res.ok) throw new Error();
             let analysisData = await res.json();
-            */
 
-            // API 배포 전까지 프론트 독자 테스트 및 데모 시연을 위해 Mock 데이터를 바인딩합니다.
-            let analysisData = [...mockAnalysisList];
-
-            // 최신 분석 결과 순서대로 정렬 
             analysisData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             const recent = analysisData.slice(0, 3);
 
@@ -137,8 +119,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 analysisListEl.innerHTML = recent.map(an => {
                     const dateStr = an.created_at.split('T')[0].replace(/-/g, '.');
                     const typeLabel = an.type === 'deep' ? '[심층 해석]' : '[간단 해몽]';
-
-                    // ✨ 라우팅 버그 수정: 폼 작성 화면이 아닌, 최종 분석 결과 데이터 뷰어로 경로 매핑
                     const detailLink = `pages/analysis-result.html?id=${an.id}`;
 
                     return `
@@ -148,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                          onmouseout="this.style.transform='translateY(0)'"
                          onclick="location.href='${detailLink}'">
                         <div class="card-body p-3 d-flex justify-content-between align-items-center">
-                            <span class="text-light-emphasis small text-truncate" style="max-width: 75%;">${typeLabel} ${an.dream_title}</span>
+                            <span class="text-light-emphasis small text-truncate" style="max-width: 75%;">${typeLabel} ${an.dream_title || ''}</span>
                             <span class="text-secondary small ms-2" style="min-width: 70px; text-align: right;">${dateStr}</span>
                         </div>
                     </div>
@@ -156,8 +136,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }).join('');
             }
         } catch (err) {
-            console.error("AI 분석 결과 로드 실패, Fallback 데이터 제어:", err);
-            analysisListEl.innerHTML = '<div class="text-center py-3 text-secondary small border border-secondary border-dashed rounded">데이터를 불러오지 못했습니다.</div>';
+            console.error("AI 분석 결과 로드 실패:", err);
+            analysisListEl.innerHTML = '<div class="text-center py-3 text-secondary small">데이터를 불러오지 못했습니다.</div>';
         }
     }
 });

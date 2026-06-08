@@ -11,6 +11,7 @@ class User(Base):
     nickname      = Column(String(50))
     gender        = Column(String(10))
     age_group     = Column(String(10))
+    profile_image = Column(Text, nullable=True)
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
     updated_at    = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

@@ -5,8 +5,9 @@ from contextlib import asynccontextmanager
 from sqlalchemy import select
 from app.database import engine, Base, AsyncSessionLocal
 from app.config import settings
-from app.routers import auth, diary, experience
+from app.routers import auth, diary, experience, analysis, user
 from app.models.experience import Experience
+from app.models.analysis import AnalysisReport
 
 
 async def _requeue_pending_experiences():
@@ -44,6 +45,8 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(diary.router)
 app.include_router(experience.router)
+app.include_router(analysis.router)
+app.include_router(user.router)
 
 @app.get("/health")
 async def health():

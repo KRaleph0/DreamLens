@@ -188,40 +188,73 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnStart.disabled = true;
         btnStart.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> 데이터 집계 및 AI 분석 중...';
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // 선택된 경험 정보 수집
+        const checked = [...document.querySelectorAll('.exp-checkbox:checked')];
+        const experiences = checked.map(cb => {
+            const item = cb.closest('.exp-item');
+            const mode = item.querySelector('.btn-check:checked').value;
+            const id = parseInt(item.dataset.expId);
+            const exp = expList.find(e => e.id === id);
+            let text;
+            if (mode === 'original') text = exp.content;
+            else if (mode === 'summary') text = exp.summary || exp.content;
+            else text = exp.content; // compress: 별도 압축 미수행, 원문 전달
+            return { exp_id: id, title: exp.title, text, mode, time_text: exp.time_text || '' };
+        });
 
-        resultSection.classList.remove('d-none');
-        btnStart.style.display = 'none';
+        try {
+            const res = await apiFetch(`${API_BASE}/analysis/broad`, {
+                method: 'POST',
+                body: JSON.stringify({ period: selectedPeriod, experiences }),
+            });
 
-        renderCharts();
+            if (!res || !res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'API 오류');
+            }
 
-        const periodText = selectedPeriod === '1w' ? '최근 1주일' : selectedPeriod === '1m' ? '최근 1개월' : '최근 3개월';
-        aiResultText.innerHTML = `
-            <p><strong>[${periodText}]</strong> 동안 기록된 꿈과 경험을 종합 분석한 결과입니다.</p>
-            <p>주로 <strong>'불안'</strong>과 <strong>'도피'</strong>라는 감정이 기저에 깔려있습니다. 현실에서 마주한 압박감이 꿈속에서 '끝없이 이어지는 복도'나 '하늘을 날며 도망치는' 형태로 반복 투영되고 있습니다.</p>
-            <div class="alert alert-info mt-3 mb-0" role="alert">
-                💡 <strong>AI의 조언:</strong> 현재의 스트레스는 성장 과정의 일부입니다. 무의식은 당신에게 잠시 쉬어갈 여유가 필요하다는 신호를 보내고 있습니다.
-            </div>
-        `;
+            const data = await res.json();
+            const periodText = selectedPeriod === '1w' ? '최근 1주일' : selectedPeriod === '1m' ? '최근 1개월' : '최근 3개월';
+
+            resultSection.classList.remove('d-none');
+            btnStart.style.display = 'none';
+            renderCharts(data.keyword_freq || [], data.categories || []);
+
+            aiResultText.innerHTML = `
+                <p><strong>[${periodText}]</strong> 동안 기록된 꿈과 경험을 종합 분석한 결과입니다.</p>
+                <p>${data.ai_report.replace(/\n/g, '<br>')}</p>
+            `;
+        } catch (err) {
+            btnStart.disabled = false;
+            btnStart.innerHTML = '🔮 AI 종합 분석 시작';
+            alert(`AI 분석 중 오류가 발생했습니다.\n${err.message}`);
+        }
     });
 
     // ── Chart.js 렌더링 함수 ─────────────────────────────────────────────
+    // kwFreq: [{keyword, count}, ...]  categories: [{name, percentage}, ...]
     let barChartInstance = null;
     let doughnutChartInstance = null;
 
-    function renderCharts() {
+    const CAT_COLORS = ['#dc3545', '#198754', '#0dcaf0', '#6c757d', '#ffc107', '#6f42c1'];
+
+    function renderCharts(kwFreq, categories) {
         Chart.defaults.color = '#adb5bd';
 
+        // ── 키워드 막대 차트 ──────────────────────────────
         const barCtx = document.getElementById('keywordBarChart').getContext('2d');
         if (barChartInstance) barChartInstance.destroy();
+
+        const barLabels = kwFreq.length > 0 ? kwFreq.map(k => k.keyword) : ['데이터 없음'];
+        const barData   = kwFreq.length > 0 ? kwFreq.map(k => k.count)   : [0];
 
         barChartInstance = new Chart(barCtx, {
             type: 'bar',
             data: {
-                labels: ['도망', '하늘', '바다', '미로', '시험'],
+                labels: barLabels,
                 datasets: [{
                     label: '등장 횟수',
-                    data: [8, 5, 4, 3, 2],
+                    data: barData,
                     backgroundColor: 'rgba(54, 162, 235, 0.6)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 1,
@@ -232,23 +265,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
                     x: { grid: { display: false } }
                 },
                 plugins: { legend: { display: false } }
             }
         });
 
+        // ── 카테고리 도넛 차트 ──────────────────────────────
         const doughnutCtx = document.getElementById('categoryDoughnutChart').getContext('2d');
         if (doughnutChartInstance) doughnutChartInstance.destroy();
+
+        const catLabels = categories.length > 0 ? categories.map(c => c.name)       : ['분석 결과 없음'];
+        const catData   = categories.length > 0 ? categories.map(c => c.percentage) : [100];
+        const catColors = categories.length > 0
+            ? CAT_COLORS.slice(0, categories.length)
+            : ['#6c757d'];
 
         doughnutChartInstance = new Chart(doughnutCtx, {
             type: 'doughnut',
             data: {
-                labels: ['악몽', '길몽', '일상몽', '기타'],
+                labels: catLabels,
                 datasets: [{
-                    data: [45, 25, 20, 10],
-                    backgroundColor: ['#dc3545', '#198754', '#0dcaf0', '#6c757d'],
+                    data: catData,
+                    backgroundColor: catColors,
                     borderWidth: 0,
                     hoverOffset: 10
                 }]

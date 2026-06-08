@@ -1,8 +1,6 @@
 // frontend/js/auth.js
 
-const API_BASE = (['localhost', '127.0.0.1'].includes(location.hostname) && location.port && location.port !== '80')
-    ? 'http://localhost:8000'
-    : '/api';
+const API_BASE = '/api';
 
 // ── 공통 유틸 ───────────────────────────────────────────────
 function showError(message) {
@@ -46,6 +44,24 @@ async function apiPost(path, body) {
     return data;
 }
 
+async function fetchAndCacheProfile(token) {
+    try {
+        const res = await fetch(`${API_BASE}/user/profile`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include',
+        });
+        if (!res.ok) return;
+        const profile = await res.json();
+        localStorage.setItem('userNickname', profile.nickname || '사용자');
+        localStorage.setItem('userProfile', JSON.stringify({
+            nickname:     profile.nickname    || '사용자',
+            gender:       profile.gender      || 'unselected',
+            age:          profile.age_group   || 'unselected',
+            profileImage: profile.profile_image || null,
+        }));
+    } catch (_) { /* 실패해도 로그인 흐름은 계속 */ }
+}
+
 // ── DOMContentLoaded ─────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm    = document.getElementById('login-form');
@@ -64,18 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
 
-            // ✨ [추가] 자동 로그인 체크 여부 확인
-            const isAutoLogin = document.getElementById('auto-login')?.checked;
-
             setLoading(btn, true);
             try {
                 const autoLogin = document.getElementById('auto-login')?.checked ?? true;
                 const data = await apiPost('/auth/login', { email, password, auto_login: autoLogin });
                 saveAccessToken(data.access_token);
-
-                if (!localStorage.getItem('userNickname')) {
-                    localStorage.setItem('userNickname', email.split('@')[0]);
-                }
+                await fetchAndCacheProfile(data.access_token);
 
                 location.href = '../index.html';
             } catch (err) {

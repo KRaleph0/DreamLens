@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     allowed_origins: str = "https://www.dreamlens.cc"
 
     class Config:
-        env_file = ("/home/aleph/projects/dreamlens/.env", "../../.env", "../.env", ".env")
+        env_file = "/home/aleph/projects/dreamlens/.env"
         env_file_encoding = "utf-8"
         extra = "ignore"
 

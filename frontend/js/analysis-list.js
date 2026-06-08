@@ -8,63 +8,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const listContainer = document.getElementById('analysis-full-list');
     const sortSelect = document.getElementById('analysis-sort-select');
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 💡 백엔드 AI 분석 결과 연동용 가짜 데이터 (Mock Data)
-    //    서버 API가 완성되면 실제 데이터 포맷을 이 구조에 맞추시면 됩니다!
-    // ─────────────────────────────────────────────────────────────────────────
-    const mockAnalysisList = [
-        {
-            id: 1,
-            type: 'deep', // 'deep': 심층 해석, 'simple': 간단 해몽
-            dream_title: '하늘을 날며 무언가로부터 필사적으로 도망치던 꿈',
-            created_at: '2026-03-22T10:30:00.000Z'
-        },
-        {
-            id: 2,
-            type: 'simple',
-            dream_title: '불이 다 꺼진 학교에서 끝없이 이어지는 복도를 걷는 꿈',
-            created_at: '2026-03-20T14:15:00.000Z'
-        },
-        {
-            id: 3,
-            type: 'deep',
-            dream_title: '중요한 시험을 보는데 연필이 통째로 으스러져 움직이지 않는 꿈',
-            created_at: '2026-02-15T09:00:00.000Z'
-        },
-        {
-            id: 4,
-            type: 'simple',
-            dream_title: '넓고 푸른 바다 한가운데에 홀로 둥둥 떠 있는 꿈',
-            created_at: '2026-01-05T18:45:00.000Z'
-        }
-    ];
-
     let currentData = [];
 
-    // ── 데이터 로드 함수 (백엔드 연동 대응 완비) ──────────────────────────────
     async function loadAnalysisData() {
         try {
-            // 🛠️ 백엔드 연동 가이드: API 배포 후 아래 주석을 해제하고 연동하세요!
-            /*
             const res = await apiFetch(`${API_BASE}/analysis`);
             if (res && res.ok) {
                 currentData = await res.json();
             } else {
                 throw new Error("API Fetch Failed");
             }
-            */
-
-            // API 배포 전까지 프론트 자체 테스트 및 데모 시연을 위해 가짜 데이터를 바인딩합니다.
-            currentData = [...mockAnalysisList];
-
-            // 데이터 로드 성공 시 정렬 후 화면 렌더링
             applySortAndRender();
-
         } catch (err) {
-            console.error("데이터 로드 실패, Fallback 데이터 전환:", err);
-            // API 에러 발생 시에도 화면이 깨지지 않고 테스트가 가능하도록 방어 코드 구축
-            currentData = [...mockAnalysisList];
-            applySortAndRender();
+            console.error("분석 목록 로드 실패:", err);
+            listContainer.innerHTML = '<div class="text-center py-5 text-secondary">분석 결과를 불러오지 못했습니다.</div>';
         }
     }
 

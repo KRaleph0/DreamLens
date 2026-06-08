@@ -1,8 +1,6 @@
 // 모든 페이지 공통: 인증 + API 호출 유틸리티
 
-const API_BASE = (['localhost', '127.0.0.1'].includes(location.hostname) && location.port && location.port !== '80')
-    ? 'http://localhost:8000'
-    : '/api';
+const API_BASE = '/api';
 
 // ── Access Token 관리 ──────────────────────────────────────────
 function getAccessToken() { return sessionStorage.getItem('access_token'); }

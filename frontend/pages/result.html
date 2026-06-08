@@ -18,28 +18,25 @@
         
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <span class="badge bg-primary mb-2">Task A : 간단 해몽</span>
-                <h2 class="fw-bold mb-0">하늘을 날다가 떨어지는 꿈</h2>
+                <span class="badge bg-primary mb-2">✨ 간단 해몽</span>
+                <h2 class="fw-bold mb-0" id="dream-date">불러오는 중...</h2>
             </div>
-            <div class="text-end text-secondary small">
-                2026.03.30 분석됨
-            </div>
+            <div class="text-end text-secondary small" id="analysis-date"></div>
         </div>
 
         <div class="card p-4 shadow-sm mb-4 border-secondary-subtle">
-            <h5 class="fw-bold mb-3">✨ 핵심 키워드</h5>
-            <div id="keyword-container" class="d-flex flex-wrap gap-2">
-                <span class="badge bg-danger">P(핵심): 추락</span>
-                <span class="badge bg-warning text-dark">S(보조): 비행</span>
-                <span class="badge bg-secondary">T(배경): 하늘</span>
-            </div>
+            <h5 class="fw-bold mb-3">🔑 핵심 키워드</h5>
+            <div id="keyword-primary" class="d-flex flex-wrap gap-2 mb-2"></div>
+            <h5 class="fw-bold mb-3 mt-2">🔵 보조 키워드</h5>
+            <div id="keyword-secondary" class="d-flex flex-wrap gap-2 mb-2"></div>
+            <h5 class="fw-bold mb-3 mt-2">⚪ 배경 키워드</h5>
+            <div id="keyword-tertiary" class="d-flex flex-wrap gap-2"></div>
         </div>
 
         <div class="card p-4 shadow-sm mb-4 border-secondary-subtle">
             <h5 class="fw-bold mb-3 text-primary-custom">📜 해석 결과</h5>
             <div id="interpretation-content" class="text-light" style="line-height: 1.8;">
-                현재 심리적으로 큰 부담감을 느끼고 있거나, 진행 중인 일에 대한 통제력을 잃을까 봐 두려워하는 상태가 무의식에 반영된 꿈입니다. 특히 '추락'이라는 키워드는 현실에서의 지위나 상황이 나빠질 것에 대한 불안과 깊이 연결되어 있습니다. 
-                <br><br>하지만 역설적으로, 떨어지는 과정에서 느낀 감정이 '해방감'에 가까웠다면 이는 억눌렸던 스트레스를 털어내고 새로운 시작을 맞이할 준비가 되었다는 긍정적인 신호로도 해석될 수 있습니다.
+                불러오는 중...
             </div>
         </div>
 
@@ -57,6 +54,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/api.js"></script>
     <script src="../js/result.js"></script>
 </body>
 </html>

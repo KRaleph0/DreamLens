@@ -40,6 +40,51 @@ async def summarize(experience_text: str) -> dict:
     })
 
 
+_MODE_TAG = {
+    "original": "경험-원문",
+    "summary":  "경험-요약",
+    "compress": "경험-자동압축",
+}
+
+
+def _build_experience_block(experiences: list) -> str:
+    """경험 목록을 Task D 규격 태그 블록으로 조립."""
+    if not experiences:
+        return ""
+    blocks = []
+    for exp in experiences:
+        tag = _MODE_TAG.get(exp.get("mode", "original"), "경험-원문")
+        blocks.append(f"[{tag}]\n제목: {exp['title']}\n{exp['text']}\n[/{tag}]")
+    return "\n".join(blocks)
+
+
+async def deep_analyze(dream_text: str, experiences: list) -> dict:
+    """Task D: 심층 해석 (꿈 + 현실 경험 결합)
+    experiences: [{"title": str, "text": str, "mode": str}]
+    반환: {"interpretation": str, "char_count": int}
+    """
+    experience_block = _build_experience_block(experiences)
+    return await _post(_ENDPOINT_A, {
+        "input": {
+            "task": "task_d",
+            "dream_text": dream_text,
+            "experience_block": experience_block,
+        }
+    })
+
+
+async def broad_analyze(period: str, diaries: list, experiences: list) -> dict:
+    """Task B: 종합 분석 (기간별 꿈 + 경험)"""
+    return await _post(_ENDPOINT_A, {
+        "input": {
+            "task": "task_b",
+            "period": period,
+            "diaries": diaries,
+            "experiences": experiences,
+        }
+    })
+
+
 async def compress(experience_text: str, target_tokens: int) -> dict:
     """Task C-Ext: 목표 토큰 수로 자동압축.
     짧은 원문(<150 추정 토큰)은 API 호출 없이 원문 반환.

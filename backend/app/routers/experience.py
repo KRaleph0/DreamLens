@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,6 +33,8 @@ async def _run_task_c(exp_id: int) -> None:
             exp.status = "done"
             await db.commit()
             print(f"[Task C] exp_id={exp_id} 완료", flush=True)
+        except asyncio.CancelledError:
+            raise  # 서버 종료 신호 — status 변경 없이 그대로 둠 (재시작 시 재처리)
         except Exception as e:
             print(f"[Task C] exp_id={exp_id} 실패: {e}", flush=True)
             exp.status = "failed"
@@ -94,6 +97,7 @@ async def get_experience(
 async def update_experience(
     exp_id: int,
     body: ExperienceUpdate,
+    background_tasks: BackgroundTasks,
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -104,6 +108,8 @@ async def update_experience(
     if not exp:
         raise HTTPException(status_code=404, detail="존재하지 않는 경험 기록입니다.")
 
+    content_changed = body.content is not None and body.content != exp.content
+
     if body.title is not None:
         exp.title = body.title
     if body.time_value is not None:
@@ -112,8 +118,16 @@ async def update_experience(
         exp.time_text = body.time_text
     if body.content is not None:
         exp.content = body.content
+    if content_changed:
+        exp.status = "pending"
+        exp.summary = None
+
     await db.flush()
     await db.refresh(exp)
+
+    if content_changed:
+        background_tasks.add_task(_run_task_c, exp.id)
+
     return exp
 
 

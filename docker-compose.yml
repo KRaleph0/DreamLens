@@ -27,6 +27,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      network: host
     container_name: dreamlens-api
     restart: unless-stopped
     env_file: .env
@@ -37,6 +38,8 @@ services:
       - dreamlens-net
     expose:
       - "8000"
+    volumes:
+      - ./backend/app:/app/app
 
 volumes:
   postgres_data:

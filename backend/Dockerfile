@@ -6,7 +6,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 소스 복사
+# 소스 복사 (빌드 시 --build-arg BUILDTIME=$(date +%s) 로 캐시 무효화)
+ARG BUILDTIME=unknown
 COPY . .
 
 EXPOSE 8000

@@ -18,6 +18,7 @@ class DiaryListItem(BaseModel):
     date: date
     content: str
     task_a_result: Optional[Any] = None
+    task_d_result: Optional[Any] = None
     created_at: datetime
 
     class Config:
@@ -30,6 +31,7 @@ class DiaryResponse(BaseModel):
     date: date
     content: str
     task_a_result: Optional[Any] = None
+    task_d_result: Optional[Any] = None
     created_at: datetime
     updated_at: datetime
 

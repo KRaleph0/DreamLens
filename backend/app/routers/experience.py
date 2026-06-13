@@ -30,6 +30,7 @@ async def _run_task_c(exp_id: int) -> None:
             print(f"[Task C] exp_id={exp_id} RunPod 호출 시작", flush=True)
             output = await runpod.summarize(exp.content)
             exp.summary = output.get("summary")
+            exp.summary_token_count = output.get("token_count")
             exp.status = "done"
             await db.commit()
             print(f"[Task C] exp_id={exp_id} 완료", flush=True)

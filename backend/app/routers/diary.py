@@ -6,7 +6,9 @@ from typing import List
 from app.database import get_db, AsyncSessionLocal
 from app.dependencies import get_current_user_id
 from app.models.diary import Diary
+from app.models.experience import Experience
 from app.schemas.diary import DiaryCreate, DiaryUpdate, DiaryResponse, DiaryListItem
+from app.schemas.analysis import DeepAnalysisRequest
 from app import runpod
 
 router = APIRouter(prefix="/diary", tags=["diary"])
@@ -116,6 +118,49 @@ async def analyze_diary(
         background_tasks.add_task(_run_task_a, diary_id)
 
     return diary
+
+
+@router.post("/{diary_id}/analyze/deep", response_model=DiaryResponse)
+async def analyze_diary_deep(
+    diary_id: int,
+    body: DeepAnalysisRequest,
+    user_id: int = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Diary).where(Diary.id == diary_id, Diary.user_id == user_id)
+    )
+    diary = result.scalar_one_or_none()
+    if not diary:
+        raise HTTPException(status_code=404, detail="존재하지 않는 꿈일기입니다.")
+
+    lines: list[str] = []
+    for sel in body.experiences:
+        r = await db.execute(
+            select(Experience).where(Experience.id == sel.exp_id, Experience.user_id == user_id)
+        )
+        exp = r.scalar_one_or_none()
+        if not exp:
+            continue
+        if sel.mode == "original":
+            lines.append(f"[경험-원문] {exp.content}")
+        elif sel.mode == "summary":
+            lines.append(f"[경험-요약] {exp.summary or exp.content}")
+        elif sel.mode == "compressed":
+            target = sel.target_tokens or 200
+            out = await runpod.compress(exp.content, target)
+            lines.append(f"[경험-자동압축] {out['summary']}")
+
+    experience_block = "\n".join(lines)
+
+    try:
+        output = await runpod.deep_analyze(diary.content, experience_block)
+        diary.task_d_result = output
+        await db.flush()
+        await db.refresh(diary)
+        return diary
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI 서버 오류: {str(e)}")
 
 
 @router.delete("/{diary_id}", status_code=204)

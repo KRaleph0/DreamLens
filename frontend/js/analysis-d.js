@@ -328,24 +328,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('taskD-loading').classList.remove('d-none');
 
         const experiencePayload = selections.map(s => {
-            let text;
-            if (s.mode === 'original') text = s.exp.content;
-            else if (s.mode === 'summary') text = s.exp.summary || s.exp.content;
-            else text = s.compressedText || s.exp.content;
-
-            return {
+            const entry = {
                 exp_id: s.id,
-                title: s.exp.title,
-                text,
-                mode: s.mode,
-                time_text: s.exp.time_text || '',
+                mode: s.mode === 'compress' ? 'compressed' : s.mode,
             };
+            if (s.mode === 'compress') entry.target_tokens = targetPerItem;
+            return entry;
         });
 
         try {
-            const res = await apiFetch(`${API_BASE}/analysis/deep`, {
+            const res = await apiFetch(`${API_BASE}/analysis/deep?diary_id=${dreamId}`, {
                 method: 'POST',
-                body: JSON.stringify({ diary_id: dreamId, experiences: experiencePayload }),
+                body: JSON.stringify({ experiences: experiencePayload }),
             });
 
             if (!res || !res.ok) {

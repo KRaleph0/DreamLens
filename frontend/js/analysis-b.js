@@ -202,18 +202,56 @@ document.addEventListener('DOMContentLoaded', async () => {
             return { exp_id: id, title: exp.title, text, mode, time_text: exp.time_text || '' };
         });
 
-        try {
-            const res = await apiFetch(`${API_BASE}/analysis/broad`, {
-                method: 'POST',
-                body: JSON.stringify({ period: selectedPeriod, experiences }),
-            });
+        // experiences 페이로드를 백엔드 형식에 맞게 변환
+        let fixedTok = 0;
+        let compressCnt = 0;
+        checked.forEach(cb => {
+            const item = cb.closest('.exp-item');
+            const mode = item.querySelector('.btn-check:checked').value;
+            if (mode === 'original') fixedTok += parseInt(item.dataset.contentTokens);
+            else if (mode === 'summary') fixedTok += parseInt(item.dataset.summaryTokens) || 50;
+            else compressCnt++;
+        });
+        const targetTok = compressCnt > 0 ? Math.max(50, Math.floor((TOTAL_BUDGET - fixedTok) / compressCnt)) : 200;
 
-            if (!res || !res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || 'API 오류');
+        const expPayload = checked.map(cb => {
+            const item = cb.closest('.exp-item');
+            const mode = item.querySelector('.btn-check:checked').value;
+            const id = parseInt(item.dataset.expId);
+            const entry = { exp_id: id, mode: mode === 'compress' ? 'compressed' : mode };
+            if (mode === 'compress') entry.target_tokens = targetTok;
+            return entry;
+        });
+
+        try {
+            // Step 1: 기간별 티어 해석 (Task B-1 × 3)
+            const tierRes = await apiFetch(`${API_BASE}/analysis/period/tier`, {
+                method: 'POST',
+                body: JSON.stringify({ period: selectedPeriod }),
+            });
+            if (!tierRes || !tierRes.ok) {
+                const e = await tierRes.json().catch(() => ({}));
+                throw new Error(Array.isArray(e.detail) ? e.detail[0]?.msg : (e.detail || 'Step 1 오류'));
+            }
+            const tierData = await tierRes.json();
+
+            // Step 2: 종합 재해석 (Task B-2)
+            const finalRes = await apiFetch(`${API_BASE}/analysis/period/final`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    period: selectedPeriod,
+                    interp_p: tierData.interp_p,
+                    interp_s: tierData.interp_s,
+                    interp_t: tierData.interp_t,
+                    experiences: expPayload,
+                }),
+            });
+            if (!finalRes || !finalRes.ok) {
+                const e = await finalRes.json().catch(() => ({}));
+                throw new Error(Array.isArray(e.detail) ? e.detail[0]?.msg : (e.detail || 'Step 2 오류'));
             }
 
-            const data = await res.json();
+            const data = await finalRes.json();
             const periodText = selectedPeriod === '1w' ? '최근 1주일' : selectedPeriod === '1m' ? '최근 1개월' : '최근 3개월';
 
             resultSection.classList.remove('d-none');

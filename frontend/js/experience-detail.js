@@ -26,7 +26,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const statusBadge = exp.status === 'pending'
         ? '<span class="badge bg-warning text-dark me-2">요약 생성 중 ⏳</span>'
         : exp.status === 'failed'
-        ? '<span class="badge bg-danger me-2">요약 실패 ⚠️</span>'
+        ? `<span class="badge bg-danger me-2">요약 실패 ⚠️</span>
+           <button id="btn-retry-summary" class="btn btn-sm btn-outline-warning me-2">재시도</button>`
         : '<span class="badge bg-success me-2">요약 완료</span>';
 
     container.innerHTML = `
@@ -52,6 +53,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         ` : ''}
     `;
     actionBtns.style.setProperty('display', 'flex', 'important');
+
+    if (exp.status === 'failed') {
+        document.getElementById('btn-retry-summary').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-retry-summary');
+            btn.disabled = true;
+            btn.textContent = '재시도 중...';
+            const r = await apiFetch(`${API_BASE}/experience/${expId}/summarize`, { method: 'POST' });
+            if (r && r.ok) {
+                alert('요약 재요청이 완료됐습니다. 잠시 후 새로고침해주세요.');
+            } else {
+                alert('재시도 요청에 실패했습니다.');
+                btn.disabled = false;
+                btn.textContent = '재시도';
+            }
+        });
+    }
 
     document.getElementById('btn-delete').addEventListener('click', async () => {
         if (!confirm('이 경험 기록을 삭제하시겠습니까?')) return;

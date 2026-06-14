@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 import httpx
 from app.config import settings
 
-_ENDPOINT_C = "https://api.runpod.ai/v2/8r4mlzo7txxs5v/runsync?timeout=290"
 _ENDPOINT_A = "https://api.runpod.ai/v2/ub5ilhilso4u84/runsync?timeout=290"
+_ENDPOINT_C = _ENDPOINT_A
 _TIMEOUT    = 300.0
 
 

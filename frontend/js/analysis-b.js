@@ -247,8 +247,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }),
             });
             if (!finalRes || !finalRes.ok) {
-                const e = await finalRes.json().catch(() => ({}));
-                throw new Error(Array.isArray(e.detail) ? e.detail[0]?.msg : (e.detail || 'Step 2 오류'));
+                const raw = await finalRes.text().catch(() => '');
+                let msg = `Step 2 HTTP ${finalRes?.status}`;
+                try {
+                    const e = JSON.parse(raw);
+                    msg = Array.isArray(e.detail) ? e.detail.map(d => d.msg).join(', ') : (e.detail || msg);
+                } catch { msg += `: ${raw.slice(0, 200)}`; }
+                throw new Error(msg);
             }
 
             const data = await finalRes.json();

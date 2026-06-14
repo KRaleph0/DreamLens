@@ -209,13 +209,13 @@ async def analyze_period_tier(
     counters = {"primary": Counter(), "secondary": Counter(), "tertiary": Counter()}
     for d in diaries:
         ta = d.task_a_result or {}
-        for kw in ta.get("primary_keywords", []):
+        for kw in ta.get("keywords", ta.get("primary_keywords", [])):
             if kw:
                 counters["primary"][kw] += 1
-        for kw in ta.get("secondary_keywords", []):
+        for kw in ta.get("secondaryKeywords", ta.get("secondary_keywords", [])):
             if kw:
                 counters["secondary"][kw] += 1
-        for kw in ta.get("tertiary_keywords", []):
+        for kw in ta.get("tertiaryKeywords", ta.get("tertiary_keywords", [])):
             if kw:
                 counters["tertiary"][kw] += 1
 
@@ -277,8 +277,8 @@ async def analyze_period_final(
     cat_counter: Counter = Counter()
     for d in diaries:
         ta = d.task_a_result or {}
-        for field in ("primary_keywords", "secondary_keywords", "tertiary_keywords"):
-            for kw in ta.get(field, []):
+        for field_pair in (("keywords", "primary_keywords"), ("secondaryKeywords", "secondary_keywords"), ("tertiaryKeywords", "tertiary_keywords")):
+            for kw in ta.get(field_pair[0], ta.get(field_pair[1], [])):
                 if kw and (not MATRIX_SET or kw in MATRIX_SET):
                     kw_counter[kw] += 1
                     cat_counter[KEYWORD_CATEGORY.get(kw, "기타")] += 1

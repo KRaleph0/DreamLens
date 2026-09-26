@@ -9,3 +9,4 @@ cloudflared.deb
 dreamlens-db.session.sql
 
 backend/venv/
+.claude/

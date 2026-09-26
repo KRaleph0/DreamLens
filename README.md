@@ -12,6 +12,14 @@
 
 ---
 
+## 스크린샷
+
+![메인 대시보드](docs/images/main.png)
+
+| 꿈일기 목록 | 경험 기록 | 간단 해몽 (Task A) |
+|:---:|:---:|:---:|
+| ![꿈일기 목록](docs/images/diary-list.png) | ![경험 기록](docs/images/experience-form.png) | ![간단 해몽](docs/images/dream-analysis.png) |
+
 ## 주요 기능
 
 | 기능 | 설명 |

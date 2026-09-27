@@ -43,6 +43,10 @@
 | Infra | Docker, Docker Compose, Cloudflare Tunnel |
 | Frontend | Vanilla JS, HTML, CSS |
 
+## 개발 도구
+
+- AI 코딩 보조 도구(Claude Code)를 구현 보조와 디버깅에 활용했으며, 설계 결정과 코드 검토는 직접 수행했습니다.
+
 ## 아키텍처
 
 ```
